@@ -7,6 +7,7 @@ Package pb is a generated protocol buffer package.
 It is generated from these files:
 	build.proto
 	guideocelot.proto
+	werker.proto
 	werkerserver.proto
 
 It has these top-level messages:
@@ -37,8 +38,10 @@ It has these top-level messages:
 	PollRequest
 	Polls
 	Exists
+	WerkerFacts
 	Request
 	Response
+	Info
 */
 package pb
 

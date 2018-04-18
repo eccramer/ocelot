@@ -55,7 +55,7 @@ func stream(ctx interface{}, w http.ResponseWriter, r *http.Request) {
 
 
 //ServeMe will start HTTP Server as needed for streaming build output by hash
-func ServeMe(transportChan chan *models.Transport, buildCtxChan chan *models.BuildContext, conf *models.WerkerFacts, store storage.OcelotStorage) {
+func ServeMe(transportChan chan *models.Transport, buildCtxChan chan *models.BuildContext, conf *pb.WerkerFacts, store storage.OcelotStorage) {
 	// todo: defer a recovery here
 	werkStream := getWerkerContext(conf, store)
 	streamPack := streamer.GetStreamPack(werkStream.BuildContexts, werkStream.store, werkStream.consul)

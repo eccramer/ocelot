@@ -15,6 +15,7 @@ import (
 	"bitbucket.org/level11consulting/ocelot/common"
 	cred "bitbucket.org/level11consulting/ocelot/common/credentials"
 	"bitbucket.org/level11consulting/ocelot/models"
+	"bitbucket.org/level11consulting/ocelot/models/pb"
 	"bitbucket.org/level11consulting/ocelot/storage"
 
 	"github.com/google/uuid"
@@ -36,7 +37,7 @@ type Valet struct {
 	c.Cleaner
 }
 
-func NewValet(rc cred.CVRemoteConfig, uid uuid.UUID, werkerType models.WerkType, store storage.OcelotStorage) *Valet {
+func NewValet(rc cred.CVRemoteConfig, uid uuid.UUID, werkerType pb.WerkerType, store storage.OcelotStorage) *Valet {
 	valet := &Valet{RemoteConfig: rc, WerkerUuid: uid, doneChannels: make(map[string]chan int), store:store}
 	valet.Cleaner = c.GetNewCleaner(werkerType)
 

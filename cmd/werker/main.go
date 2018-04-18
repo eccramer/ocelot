@@ -87,9 +87,9 @@ func main() {
 	if err != nil {
 		ocelog.IncludeErrField(err).Fatal("unable to register werker with consul, this is vital. BAILING!")
 	}
-	conf.Uuid = uuid
+	conf.Uuid = uuid[:]
 	// kick off ctl-c signal handling
-	buildValet := valet.NewValet(conf.RemoteConfig, conf.Uuid, conf.WerkerType, store)
+	buildValet := valet.NewValet(conf.RemoteConfig, uuid, conf.WerkType, store)
 	c := make(chan os.Signal, 2)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {

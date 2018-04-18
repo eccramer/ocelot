@@ -1,6 +1,7 @@
 package build
 
 import (
+	"errors"
 	"strconv"
 	"strings"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"bitbucket.org/level11consulting/ocelot/common"
 	"bitbucket.org/level11consulting/ocelot/models/pb"
 	"bitbucket.org/level11consulting/ocelot/storage"
+	"github.com/google/uuid"
 )
 type HashRuntime struct {
 	DockerUuid   string
@@ -109,6 +111,17 @@ func GetWerkerActiveBuilds(consulete *consul.Consulet, werkerId string) (hashes 
 	return
 }
 
+func GetAllActiveBuilds(consulete *consul.Consulet) (hashes []string, err error) {
+	keys, err := consulete.GetKeys(common.MakeGenericBuildMap())
+	if err != nil {
+		return
+	}
+	for _, key := range keys {
+		hash := common.GetLastElemOfKey(key)
+		hashes = append(hashes, hash)
+	}
+	return
+}
 
 func CheckBuildInConsul(consulete *consul.Consulet, hash string) (exists bool, err error) {
 	pairPath := common.MakeBuildMapPath(hash)
@@ -168,6 +181,33 @@ func GetDockerUuidsByWerkerId(consulete *consul.Consulet, werkerId string) (uuid
 	}
 	return
 }
+
+func GetAllWerkersFromConsul(consulete *consul.Consulet) (werkers []*pb.WerkerFacts, err error) {
+	pairs, err := consulete.GetKeyValues(common.MakeWerkerPath())
+	if err != nil {
+		return
+	}
+	for _, par := range pairs {
+		wf := &pb.WerkerFacts{}
+		var uuId uuid.UUID
+		uuId, err = common.GetWerkerIdFromPath(par.Key)
+		if err != nil {
+			return
+		}
+		wf.Uuid = uuId[:]
+		key := common.GetLastElemOfKey(par.Key)
+		switch key {
+		case common.WIpKey: wf.ConsulRegisteredIp = string(par.Value)
+		case common.WWsPort: wf.ServicePort = string(par.Value)
+		case common.WGrpcKey: wf.GrpcPort = string(par.Value)
+		default:
+			return nil, errors.New("unknown key " + key)
+		}
+		werkers = append(werkers, wf)
+	}
+	return
+}
+
 
 func convertArrayToInt(array []byte) (int64, error) {
 	integ, err := strconv.Atoi(string(array))

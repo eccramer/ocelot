@@ -9,6 +9,7 @@ import (
 	ocelog "bitbucket.org/level11consulting/go-til/log"
 	"bitbucket.org/level11consulting/ocelot/build"
 	"bitbucket.org/level11consulting/ocelot/build/integrations"
+	"github.com/satori/uuid"
 
 	"bitbucket.org/level11consulting/ocelot/build/integrations/dockr"
 	"bitbucket.org/level11consulting/ocelot/build/integrations/k8s"
@@ -177,8 +178,9 @@ func handleTriggers(branch string, id int64, store storage.BuildStage, stage *pb
 
 func (w *launcher) listenForDockerUuid(dockerChan chan string, checkoutHash string) error {
 	dockerUuid := <- dockerChan
-
-	if err := valet.RegisterBuild(w.RemoteConf.GetConsul(), w.Uuid.String(), checkoutHash, dockerUuid); err != nil {
+	uid, err := uuid.FromBytes(w.Uuid)
+	if err != nil { return err }
+	if err := valet.RegisterBuild(w.RemoteConf.GetConsul(), uid.String(), checkoutHash, dockerUuid); err != nil {
 		ocelog.IncludeErrField(err).Error("couldn't register build")
 		return err
 	}

@@ -14,6 +14,7 @@ import (
 	ocelog "bitbucket.org/level11consulting/go-til/log"
 	"bitbucket.org/level11consulting/ocelot/models/pb"
 	"bitbucket.org/level11consulting/ocelot/models"
+	"github.com/golang/protobuf/ptypes/timestamp"
 	_ "github.com/lib/pq"
 )
 
@@ -295,9 +296,44 @@ func (p *PostgresStorage) RetrieveSumByBuildId(buildId int64) (models.BuildSumma
 	return sum, err
 }
 
+func (p *PostgresStorage) RetrieveLastFewSumsAll(limit int32) ([]*pb.BuildSummary, error) {
+	var sums []*pb.BuildSummary
+	if err := p.Connect(); err != nil {
+		return sums, errors.New("could not connect to postgres: " + err.Error())
+	}
+	querystr := fmt.Sprintf(`SELECT * FROM build_summary ORDER BY id DESC LIMIT %d`, limit)
+	stmt, err := p.db.Prepare(querystr)
+	if err != nil {
+		ocelog.IncludeErrField(err).Error("couldn't prepare stmt")
+		return nil, err
+	}
+	defer stmt.Close()
+	rows, err := stmt.Query()
+	if err != nil {
+		ocelog.IncludeErrField(err).Error("error executing query ", querystr)
+		return sums, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		sum := pb.BuildSummary{}
+		var queuetime, buildtime time.Time
+		if err = rows.Scan(&sum.Hash, &sum.Failed, &buildtime, &sum.Account, &sum.BuildDuration, &sum.Repo, &sum.BuildId, &sum.Branch, &queuetime); err != nil {
+			if err == sql.ErrNoRows {
+				return sums, BuildSumNotFound("no build summaries found")
+			}
+			return sums, err
+		}
+		sum.QueueTime = &timestamp.Timestamp{Seconds:queuetime.UTC().Unix()}
+		sum.BuildTime = &timestamp.Timestamp{Seconds:buildtime.UTC().Unix()}
+		sums = append(sums, &sum)
+	}
+	return sums, nil
+}
+
+
 // RetrieveLastFewSums will return <limit> number of summaries that correlate with a repo and account.
-func (p *PostgresStorage) RetrieveLastFewSums(repo string, account string, limit int32) ([]models.BuildSummary, error) {
-	var sums []models.BuildSummary
+func (p *PostgresStorage) RetrieveLastFewSums(repo string, account string, limit int32) ([]*pb.BuildSummary, error) {
+	var sums []*pb.BuildSummary
 	if err := p.Connect(); err != nil {
 		return sums, errors.New("could not connect to postgres: " + err.Error())
 	}
@@ -315,14 +351,17 @@ func (p *PostgresStorage) RetrieveLastFewSums(repo string, account string, limit
 	}
 	defer rows.Close()
 	for rows.Next() {
-		sum := models.BuildSummary{}
-		if err = rows.Scan(&sum.Hash, &sum.Failed, &sum.BuildTime, &sum.Account, &sum.BuildDuration, &sum.Repo, &sum.BuildId, &sum.Branch, &sum.QueueTime); err != nil {
+		sum := pb.BuildSummary{}
+		var queuetime, buildtime time.Time
+		if err = rows.Scan(&sum.Hash, &sum.Failed, buildtime, &sum.Account, &sum.BuildDuration, &sum.Repo, &sum.BuildId, &sum.Branch, queuetime); err != nil {
 			if err == sql.ErrNoRows {
 				return sums, BuildSumNotFound("account: " + account + "and repo: " + repo)
 			}
 			return sums, err
 		}
-		sums = append(sums, sum)
+		sum.QueueTime = &timestamp.Timestamp{Seconds:queuetime.UTC().Unix()}
+		sum.BuildTime = &timestamp.Timestamp{Seconds:buildtime.UTC().Unix()}
+		sums = append(sums, &sum)
 	}
 	return sums, nil
 }

@@ -16,6 +16,20 @@
   ],
   "paths": {},
   "definitions": {
+    "modelsInfo": {
+      "type": "object",
+      "properties": {
+        "werkerFacts": {
+          "$ref": "#/definitions/modelsWerkerFacts"
+        },
+        "activeHashes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
     "modelsResponse": {
       "type": "object",
       "properties": {
@@ -23,6 +37,39 @@
           "type": "string"
         }
       }
+    },
+    "modelsWerkerFacts": {
+      "type": "object",
+      "properties": {
+        "uuid": {
+          "type": "string",
+          "format": "byte"
+        },
+        "werkType": {
+          "$ref": "#/definitions/modelsWerkerType"
+        },
+        "LoopbackIp": {
+          "type": "string"
+        },
+        "ServicePort": {
+          "type": "string"
+        },
+        "GrpcPort": {
+          "type": "string"
+        },
+        "consulRegisteredIp": {
+          "type": "string"
+        }
+      }
+    },
+    "modelsWerkerType": {
+      "type": "string",
+      "enum": [
+        "NIL_WT",
+        "KUBERNETES_WT",
+        "DOCKER_WT"
+      ],
+      "default": "NIL_WT"
     }
   }
 }

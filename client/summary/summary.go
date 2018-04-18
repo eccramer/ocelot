@@ -43,6 +43,7 @@ type cmd struct {
 	config *commandhelper.ClientConfig
 	*commandhelper.OcyHelper
 	limit int
+	all   bool
 }
 
 func (c *cmd) GetClient() models.GuideOcelotClient {
@@ -69,6 +70,7 @@ func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.StringVar(&c.OcyHelper.AcctRepo, "acct-repo", "ERROR", "<account>/<repo> to display build summaries for ")
 	c.flags.IntVar(&c.limit, "limit", 5, "number of rows to fetch")
+	c.flags.BoolVar(&c.all, "all", false, "return all build summaries, not limited by acct/repo")
 }
 
 
@@ -76,26 +78,35 @@ func (c *cmd) Run(args []string) int {
 	if err := c.flags.Parse(args); err != nil {
 		return 1
 	}
-
+	ctx := context.Background()
+	if err := commandhelper.CheckConnection(c, ctx); err != nil {
+		return 1
+	}
+	var summaries *models.Summaries
+	var err error
+	if c.all {
+		summaries, err = c.config.Client.LastFewSummaries(ctx, &models.RepoAccount{Limit: int32(c.limit)})
+		if err != nil {
+			c.UI.Error("Unable to retrieve the last few summaries for all accounts/repos. The error is: " + err.Error())
+			return 1
+		}
+		goto SUMMARIES
+	}
 	if err := c.DetectAcctRepo(c.UI); err != nil {
 		return 1
 	}
 	if err := c.SplitAndSetAcctRepo(c.UI); err != nil {
 		return 1
 	}
-	ctx := context.Background()
-	if err := commandhelper.CheckConnection(c, ctx); err != nil {
-		return 1
-	}
 	commandhelper.Debuggit(c.UI, "getting last few summaries")
 	commandhelper.Debuggit(c.UI, c.OcyHelper.Repo + ": " + c.OcyHelper.Account + "  " + c.OcyHelper.AcctRepo)
 	commandhelper.Debuggit(c.UI, fmt.Sprintf("%v", &models.RepoAccount{Repo: c.OcyHelper.Repo, Account: c.OcyHelper.Account, Limit: int32(c.limit)}))
-	summaries, err := c.config.Client.LastFewSummaries(ctx, &models.RepoAccount{Repo: c.OcyHelper.Repo, Account: c.OcyHelper.Account, Limit: int32(c.limit)})
+	summaries, err = c.config.Client.LastFewSummaries(ctx, &models.RepoAccount{Repo: c.OcyHelper.Repo, Account: c.OcyHelper.Account, Limit: int32(c.limit)})
 	if err != nil {
-		// todo: add more descriptive error
 		c.LastFewSummariesErr(err, c.GetUI())
 		return 1
 	}
+SUMMARIES:
 	commandhelper.Debuggit(c.UI, "found them!")
 	// todo: need a check/error for when nothing is found, right now just generated an empty table
 	writer := &bytes.Buffer{}

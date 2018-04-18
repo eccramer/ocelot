@@ -9,12 +9,13 @@ import (
 	ocelog "bitbucket.org/level11consulting/go-til/log"
 	"bitbucket.org/level11consulting/ocelot/build/streamer"
 	"bitbucket.org/level11consulting/ocelot/models"
+	"bitbucket.org/level11consulting/ocelot/models/pb"
 	"bitbucket.org/level11consulting/ocelot/storage"
 
 )
 type WerkerContext struct {
 	BuildContexts map[string]*models.BuildContext
-	*models.WerkerFacts
+	*pb.WerkerFacts
 	consul        *consulet.Consulet
 	store         storage.OcelotStorage
 	streamPack    *streamer.StreamPack
@@ -38,7 +39,7 @@ type WerkerContext struct {
 //	wr.Write(bit)
 //}
 
-func getWerkerContext(conf *models.WerkerFacts, store storage.OcelotStorage) *WerkerContext {
+func getWerkerContext(conf *pb.WerkerFacts, store storage.OcelotStorage) *WerkerContext {
 	werkerConsul, err := consulet.Default()
 	if err != nil {
 		ocelog.IncludeErrField(err)

@@ -2,7 +2,7 @@ package main
 
 import (
 	cred "bitbucket.org/level11consulting/ocelot/common/credentials"
-	"bitbucket.org/level11consulting/ocelot/models"
+	"bitbucket.org/level11consulting/ocelot/models/pb"
 	"bitbucket.org/level11consulting/ocelot/storage"
 	"bitbucket.org/level11consulting/ocelot/version"
 	"github.com/namsral/flag"
@@ -18,12 +18,12 @@ const (
 	defaultStorage     = "filesystem"
 )
 
-func strToWerkType(str string) models.WerkType {
+func strToWerkType(str string) pb.WerkerType {
 	switch str {
 	case "k8s", "kubernetes":
-		return models.Kubernetes
+		return pb.WerkerType_KUBERNETES_WT
 	case "docker":
-		return models.Docker
+		return pb.WerkerType_DOCKER_WT
 	default:
 		return -1
 	}
@@ -46,7 +46,7 @@ type WerkerConf struct {
 	//GrpcPort    string
 	//WerkerType  models.WerkType
 	//WerkerUuid		uuid.UUID
-	*models.WerkerFacts
+	*pb.WerkerFacts
 	WerkerName  string
 	//werkerProcessor builder.Processor
 	LogLevel        string
@@ -59,7 +59,7 @@ type WerkerConf struct {
 // GetConf sets the configuration for the Werker. Its not thread safe, but that's
 // alright because it only happens on startup of the application
 func GetConf() (*WerkerConf, error) {
-	werker := &WerkerConf{WerkerFacts:&models.WerkerFacts{}}
+	werker := &WerkerConf{WerkerFacts:&pb.WerkerFacts{}}
 	werkerName, _ := os.Hostname()
 	var werkerTypeStr string
 	var storageTypeStr string
@@ -79,8 +79,8 @@ func GetConf() (*WerkerConf, error) {
 	flrg.IntVar(&consulport, "consul-port", 8500, "port of consul")
 	flrg.Parse(os.Args[1:])
 	version.MaybePrintVersion(flrg.Args())
-	werker.WerkerType = strToWerkType(werkerTypeStr)
-	if werker.WerkerType == -1 {
+	werker.WerkType = strToWerkType(werkerTypeStr)
+	if werker.WerkType == -1 {
 		return nil, errors.New("werker type can only be: k8s, kubernetes, docker")
 	}
 	if werker.WerkerName == "" {

@@ -232,6 +232,10 @@ func (t *testBuildClient) KillHash(ctx context.Context, in *pb.Request, opts ...
 	return NewFakeBuildClient(t.logLines), nil
 }
 
+func (t *testBuildClient) GetInfo(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*pb.Info, error) {
+	return &pb.Info{}, nil
+}
+
 func NewTestBuildRuntime(done bool, ip string, grpcPort string, logLines []string) *testBuildRuntime{
 	return &testBuildRuntime{
 		Done: done,

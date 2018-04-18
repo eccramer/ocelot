@@ -10,6 +10,8 @@ import (
 	"bitbucket.org/level11consulting/ocelot/build/streamer"
 	"bitbucket.org/level11consulting/ocelot/build/valet"
 	"bitbucket.org/level11consulting/ocelot/models/pb"
+	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/satori/uuid"
 
 	"github.com/pkg/errors"
 )
@@ -41,8 +43,9 @@ func (w *WerkerServer) KillHash(request *pb.Request, stream pb.Build_KillHashSer
 
 		// remove container
 		stream.Send(wrap("Performing build cleanup..."))
-
-		hashes, err := rt.GetHashRuntimesByWerker(w.consul, w.Uuid.String())
+		uuiD, err := uuid.FromBytes(w.Uuid)
+		if err != nil { return err }
+		hashes, err := rt.GetHashRuntimesByWerker(w.consul, uuiD.String())
 		if err != nil {
 			log.IncludeErrField(err).Error("unable to retrieve active builds from consul")
 			return err
@@ -64,10 +67,28 @@ func (w *WerkerServer) KillHash(request *pb.Request, stream pb.Build_KillHashSer
 	return errors.New(fmt.Sprintf("No active build was found for %s", request.Hash))
 }
 
+func (w *WerkerServer) GetInfo(context.Context, *empty.Empty) (*pb.Info, error) {
+	// yes you can get all of this from consul, *but* i think this will be a good way to compare
+	// and see how much data gets mangled in consul. it might also end up being a good way to clean up
+	// consul automatically.
+	builds := make([]string, len(w.streamPack.BuildInfo))
+	i := 0
+	for hash := range w.streamPack.BuildInfo {
+		builds[i] = hash
+		i++
+	}
+	info := &pb.Info{
+		WerkerFacts: w.WerkerFacts,
+		ActiveHashes: builds,
+	}
+	return info, nil
+}
+
+
 func NewWerkerServer(werkerCtx *WerkerContext) pb.BuildServer {
 	werkerServer := &WerkerServer{
 		WerkerContext: werkerCtx,
-		Cleaner: cleaner.GetNewCleaner(werkerCtx.WerkerType),
+		Cleaner: cleaner.GetNewCleaner(werkerCtx.WerkType),
 	}
 	return werkerServer
 }

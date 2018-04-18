@@ -90,31 +90,13 @@ func storeSummaryToDb(store storage.BuildSum, hash, repo, branch, account string
 	return id, nil
 }
 
-//todo: pull out check for vcsHandler == nil logic, then this can be just GetConfig()
-// todo (cont): write something in remote to switch between subtypes to instantiate the correct VCSHandler implementation
-//GetConfig returns the protobuf ocelot.yaml, a valid bitbucket token belonging to that repo, and possible err.
-//If a VcsHandler is passed, this method will use the existing handler to retrieve the bb config. In that case,
-//***IT WILL NOT RETURN A VALID TOKEN FOR YOU - ONLY BUILD CONFIG***
+//GetConfig returns the protobuf ocelot.yaml and possible err.
+//VCShandler must be passed initialized; this method will use the existing handler to retrieve the bb config.
+// if vcsHandler is nil, an error will be returned.
 func GetConfig(repoFullName string, checkoutCommit string, deserializer *deserialize.Deserializer, vcsHandler models.VCSHandler) (*pb.BuildConfig, error) {
-	//var bbHandler remote.VCSHandler
-	//var token string
-
 	if vcsHandler == nil {
-		//cfg, err1 := cred.GetVcsCreds(store, repoFullName, remoteConfig)
-		//if err1 != nil {
-		//	log.IncludeErrField(err1).Error()
-		//	return nil, "", err1
-		//}
-		//var err error
-		//log.Log().WithField("identifier", cfg.GetIdentifier()).Infof("trying bitbucket config")
-		//bbHandler, token, err = bitbucket.GetBitbucketClient(cfg)
-		//if err != nil {
-		//	log.IncludeErrField(err).Error()
-		//	return nil, "", err
-		return nil, errors.New("vcs handler cannot be nul")
+		return nil, errors.New("vcs handler cannot be nil")
 	}
-
-
 	fileBytz, err := vcsHandler.GetFile("ocelot.yml", repoFullName, checkoutCommit)
 	if err != nil {
 		log.IncludeErrField(err).Error()

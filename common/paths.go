@@ -4,6 +4,8 @@ package common
 import (
 	"fmt"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 
@@ -26,9 +28,12 @@ const (
 
 	werkerLocBase  = "ci/werker_location/"
 	werkerLocation = werkerLocBase + "%s" // %s is werker id
-	WerkerIp       = werkerLocation + "/werker_ip"
-	WerkerGrpc     = werkerLocation + "/werker_grpc_port"
-	WerkerWs       = werkerLocation + "/werker_ws_port"
+	WIpKey 		   = "werker_ip"
+	WerkerIp       = werkerLocation + "/" + WIpKey
+	WGrpcKey       = "werker_grpc_port"
+	WerkerGrpc     = werkerLocation + "/" + WGrpcKey
+	WWsPort        = "werker_ws_port"
+	WerkerWs       = werkerLocation + "/" + WWsPort
 )
 
 
@@ -60,6 +65,14 @@ func MakeBuildMapPath(gitHash string) string {
 	return GetPrefix() + fmt.Sprintf(WerkerBuildMap, gitHash)
 }
 
+func MakeGenericBuildMap() string {
+	return GetPrefix() + werkerBuildBase
+}
+
+func MakeWerkerPath() string {
+	return GetPrefix() + werkerLocBase
+}
+
 func MakeWerkerLocPath(werkerId string) string {
 	return GetPrefix() + fmt.Sprintf(werkerLocation, werkerId)
 }
@@ -76,16 +89,33 @@ func MakeWerkerWsPath(werkerId string) string {
 	return GetPrefix() + fmt.Sprintf(WerkerWs, werkerId)
 }
 
+func GetWerkerIdFromPath(path string) (uuid.UUID, error){
+	shift := getShift()
+	split := strings.Split(path, "/")
+	id := split[2 + shift]
+	uid, err := uuid.Parse(id)
+	return uid, err
+}
+// GetLastElemOfKey will return the last element of the key
+// ie ci/werker_location/<uUID>/werker_grpc_port will return werker_grpc_port
+func GetLastElemOfKey(path string) string {
+	split := strings.Split(path, "/")
+	return split[len(split) - 1]
+}
 
+func getShift() int {
+	var shift int
+	if GetPrefix() != "" {
+		shift = 1
+	}
+	return shift
+}
 
 // ParseGenericBuildPath will return the werkerId and hash out of a key related to the build path
 // must be fully qualified key path, not prefix
 // ie: ci/builds/<werkerId>/<hash>/docker_uuid
 func ParseGenericBuildPath(buildPath string) (werkerId string, hash string, key string) {
-	var shift int
-	if GetPrefix() != "" {
-		shift = 1
-	}
+	shift := getShift()
 	split := strings.Split(buildPath, "/")
 	werkerId = split[2+shift]
 	hash = split[3+shift]

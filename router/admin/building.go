@@ -20,6 +20,23 @@ func (g *guideOcelotServer) BuildRuntime(ctx context.Context, bq *pb.BuildQuery)
 	buildRtInfo := make(map[string]*pb.BuildRuntimeInfo)
 	var err error
 
+	//if a valid build id passed, go ask db for entries
+	if bq.BuildId > 0 {
+		buildSum, err := g.Storage.RetrieveSumByBuildId(bq.BuildId)
+		if err != nil {
+			return &pb.Builds{
+				Builds: buildRtInfo,
+			}, handleStorageError(err)
+		}
+
+		buildRtInfo[buildSum.Hash] = &pb.BuildRuntimeInfo{
+			Hash:     buildSum.Hash,
+			Done:     true,
+			AcctName: buildSum.Account,
+			RepoName: buildSum.Repo,
+		}
+	}
+
 	if len(bq.Hash) > 0 {
 		//find matching hashes in consul by git hash
 		buildRtInfo, err = build.GetBuildRuntime(g.RemoteConfig.GetConsul(), bq.Hash)
@@ -42,33 +59,16 @@ func (g *guideOcelotServer) BuildRuntime(ctx context.Context, bq *pb.BuildQuery)
 			}, handleStorageError(err)
 		}
 
-		for _, build := range dbResults {
-			if _, ok := buildRtInfo[build.Hash]; !ok {
-				buildRtInfo[build.Hash] = &pb.BuildRuntimeInfo{
-					Hash: build.Hash,
+		for _, bild := range dbResults {
+			if _, ok := buildRtInfo[bild.Hash]; !ok {
+				buildRtInfo[bild.Hash] = &pb.BuildRuntimeInfo{
+					Hash: bild.Hash,
 					// if a result was found in the database but not in GetBuildRuntime, the build is done
 					Done: true,
 				}
 			}
-			buildRtInfo[build.Hash].AcctName = build.Account
-			buildRtInfo[build.Hash].RepoName = build.Repo
-		}
-	}
-
-	//if a valid build id passed, go ask db for entries
-	if bq.BuildId > 0 {
-		buildSum, err := g.Storage.RetrieveSumByBuildId(bq.BuildId)
-		if err != nil {
-			return &pb.Builds{
-				Builds: buildRtInfo,
-			}, handleStorageError(err)
-		}
-
-		buildRtInfo[buildSum.Hash] = &pb.BuildRuntimeInfo{
-			Hash:     buildSum.Hash,
-			Done:     true,
-			AcctName: buildSum.Account,
-			RepoName: buildSum.Repo,
+			buildRtInfo[bild.Hash].AcctName = bild.Account
+			buildRtInfo[bild.Hash].RepoName = bild.Repo
 		}
 	}
 

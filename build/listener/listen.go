@@ -19,20 +19,20 @@ import (
 )
 
 type WorkerMsgHandler struct {
-	*models.WerkerFacts
+	*pb.WerkerFacts
 	Topic           string
-	Type        models.WerkType
+	Type        	pb.WerkerType
 	infochan        chan []byte
-	StreamChan   chan *models.Transport
-	BuildCtxChan chan *models.BuildContext
+	StreamChan   	chan *models.Transport
+	BuildCtxChan 	chan *models.BuildContext
 	Basher          *basher.Basher
 	Store           storage.OcelotStorage
-	BuildValet   *valet.Valet
-	RemoteConfig  credentials.CVRemoteConfig
+	BuildValet   	*valet.Valet
+	RemoteConfig  	credentials.CVRemoteConfig
 
 }
 
-func NewWorkerMsgHandler(topic string, facts *models.WerkerFacts, b *basher.Basher, st storage.OcelotStorage, bv *valet.Valet, rc credentials.CVRemoteConfig, tunnel chan *models.Transport, buildChan chan *models.BuildContext) *WorkerMsgHandler {
+func NewWorkerMsgHandler(topic string, facts *pb.WerkerFacts, b *basher.Basher, st storage.OcelotStorage, bv *valet.Valet, rc credentials.CVRemoteConfig, tunnel chan *models.Transport, buildChan chan *models.BuildContext) *WorkerMsgHandler {
 	return &WorkerMsgHandler{
 		Topic: 		   topic,
 		Basher: 	   b,
@@ -70,7 +70,7 @@ func (w WorkerMsgHandler) UnmarshalAndProcess(msg []byte, done chan int, finish 
 	//
 	var builder build.Builder
 	switch w.Type {
-	case models.Docker:
+	case pb.WerkerType_DOCKER_WT:
 		builder = bldr.NewDockerBuilder(w.Basher)
 	default:
 		builder = bldr.NewDockerBuilder(w.Basher)

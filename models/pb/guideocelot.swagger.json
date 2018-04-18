@@ -350,7 +350,7 @@
     },
     "/v1/summary": {
       "get": {
-        "description": "will return summaries of the builds for the corresponding repo/account. limit will set how many entries will be returned, will default to 5.",
+        "description": "will return summaries of the builds for the corresponding repo/account. if repo \u0026 account are empty, then it will return summaries of all accounts. limit will set how many entries will be returned",
         "operationId": "LastFewSummaries",
         "responses": {
           "200": {

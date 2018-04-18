@@ -3,12 +3,17 @@ syntax = "proto3";
 option go_package = "pb";
 package models;
 
+import "google/protobuf/empty.proto";
+import "werker.proto";
+
+
 service Build {
     // The stream keyword is specified before both the request type and response
     // type to make it as bidirectional streaming RPC method.
 
     rpc BuildInfo (Request) returns (stream Response) {}
     rpc KillHash (Request) returns (stream Response) {}
+    rpc GetInfo(google.protobuf.Empty) returns (Info) {}
 }
 
 message Request {
@@ -17,4 +22,17 @@ message Request {
 
 message Response {
     string outputLine = 1;
+}
+
+//type WerkerFacts struct {
+//Uuid 	    	uuid.UUID
+//WerkerType           WerkType
+//LoopbackIp  	string
+//ServicePort    string
+//GrpcPort       string
+//}
+
+message Info {
+   WerkerFacts werkerFacts = 1;
+   repeated string activeHashes = 6;
 }

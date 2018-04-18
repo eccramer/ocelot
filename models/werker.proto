@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+option go_package = "pb";
+package models;
+
+enum WerkerType {
+    NIL_WT = 0;
+    KUBERNETES_WT = 1;
+    DOCKER_WT = 2;
+}
+
+message WerkerFacts {
+    bytes uuid = 1;
+    WerkerType werkType = 2;
+    string LoopbackIp = 3;
+    string ServicePort = 4;
+    string GrpcPort = 5;
+    string consulRegisteredIp = 6;
+}

@@ -23,6 +23,7 @@ package storage
 import (
 	ocelog "bitbucket.org/level11consulting/go-til/log"
 	"bitbucket.org/level11consulting/ocelot/models"
+	"bitbucket.org/level11consulting/ocelot/models/pb"
 	"encoding/json"
 	"github.com/mitchellh/go-homedir"
 	"io/ioutil"
@@ -205,8 +206,8 @@ func (f *FileBuildStorage) RetrieveLatestSum(gitHash string) (models.BuildSummar
 }
 
 //stub
-func (f *FileBuildStorage) RetrieveLastFewSums(repo string, account string, limit int32) ([]models.BuildSummary, error) {
-	var sums []models.BuildSummary
+func (f *FileBuildStorage) RetrieveLastFewSums(repo string, account string, limit int32) ([]*pb.BuildSummary, error) {
+	var sums []*pb.BuildSummary
 	return sums, nil
 }
 
