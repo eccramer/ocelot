@@ -81,7 +81,7 @@ func (d *Docker) Setup(ctx context.Context, logout chan []byte, dockerIdChan cha
 	containerConfig := &container.Config{
 		Image: imageName,
 		User: "root",
-		Env: paddedEnvs,
+		Env: append(paddedEnvs),
 		Cmd: d.DownloadTemplateFiles(werkerPort),
 		AttachStderr: true,
 		AttachStdout: true,

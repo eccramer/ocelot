@@ -16,6 +16,7 @@ import (
 
 	"bitbucket.org/level11consulting/ocelot/build/basher"
 	cleaner2 "bitbucket.org/level11consulting/ocelot/build/cleaner"
+	"bitbucket.org/level11consulting/ocelot/common/helpers/dockrhelper"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
@@ -93,6 +94,11 @@ func CreateLivingDockerContainer(t *testing.T, ctx context.Context, imageName st
 	b := &basher.Basher{
 		LoopbackIp: loopback,
 	}
+	closer, err := dockrhelper.RobustImagePull(imageName)
+	if err != nil {
+		t.Fatal("could not pull image, error: ", err.Error())
+	}
+	closer.Close()
 	builder := NewDockerBuilder(b)
 	dockerCleaner := &cleaner2.DockerCleaner{}
 	d = builder.(*Docker)

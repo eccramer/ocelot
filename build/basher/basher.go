@@ -77,7 +77,7 @@ func (b *Basher) DownloadTemplateFiles(werkerPort string) []string {
 	downloadLink := fmt.Sprintf("http://%s:%s/do_things.tar", b.LoopbackIp, werkerPort)
 	//downloadLink := fmt.Sprintf("http://172.17.0.1:%s/do_things.tar", werkerPort)
 	//warning: sleep has to be a integer; infinity doesn't exist everywhere.
-	return []string{"/bin/sh", "-c", "mkdir /.ocelot && wget " + downloadLink + " && tar -xf do_things.tar -C /.ocelot && cd /.ocelot && chmod +x * && echo \"Ocelot has finished with downloading templates\" && sleep 3600"}
+	return []string{"/bin/sh", "-c", fmt.Sprintf("eval '%s' && mkdir -p /.ocelot && wget %s && tar -xf do_things.tar -C /.ocelot && cd /.ocelot && chmod +x * && echo \"Ocelot has finished with downloading templates\" && sleep 3600", iNSTALLDEPS, downloadLink)}
 }
 
 func (b *Basher) DownloadKubectl(werkerPort string) []string {
@@ -92,3 +92,5 @@ func (b *Basher) CDAndRunCmds(cmds []string, commitHash string) []string {
 	buildAndDeploy := append([]string{"/bin/sh", "-c", strings.Join(build, " && ")})
 	return buildAndDeploy
 }
+
+const iNSTALLDEPS = `ID=$(cat /etc/os-release | grep -w ID | cut -d "=" -f2); download_dep() {  echo "$1"; command -v "$1"; if [ $? != 0 ]; then echo "dependency $1 not found, attempting to install";    if [ $ID = "alpine" ]; then    apk update &&   apk add $1;    elif [ $ID = "debian" -o $ID = "ubuntu" ]; then    apt update && apt install -y $1;    fi;else    echo "found dependency $1";fi;}; download_dep wget; download_dep openssl;`
