@@ -32,7 +32,7 @@ type BuildContext struct {
 }
 
 func NewFacts() *WerkerFacts {
-	return &WerkerFacts{Ssh:&SSHFacts{}}
+	return &WerkerFacts{Ssh:&SSHFacts{}, Exec: &ExecFacts{}}
 }
 
 // WerkerFacts is a struct for the configurations in werker that affect actual builds.
@@ -46,8 +46,18 @@ type WerkerFacts struct {
 	GrpcPort       string
 	// set dev mode
 	Dev			   bool
-	// this is only for SSH type werkers
+	Exec           *ExecFacts
 	Ssh            *SSHFacts
+	// this is only for SSH type werkers
+}
+
+type ExecFacts struct {
+	// KeepData will determine whether or not to do a fresh check out at every build
+	KeepData bool
+}
+
+func (ef *ExecFacts) SetFlags(flg Flagger) {
+	flg.BoolVar(&ef.KeepData, "keepdata", false, "whether to run a fresh checkout every build | ONLY VALID FOR EXEC TYPE WERKERS")
 }
 
 // When a werker starts up as an SSH werker, it will also need to be initialized with these fields so it knows

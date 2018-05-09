@@ -81,6 +81,8 @@ func GetConf() (*WerkerConf, error) {
 		"This may be different for different container systems / host machines. For example, when using docker for mac the loopback-ip would be docker.for.mac.localhost")
 	flrg.StringVar(&consuladdr, "consul-host", "localhost", "address of consul")
 	flrg.IntVar(&consulport, "consul-port", 8500, "port of consul")
+	// exec werker configuration
+	werker.Exec.SetFlags(flrg)
 	// ssh werker configuration
 	werker.Ssh.SetFlags(flrg)
 	flrg.Parse(os.Args[1:])
