@@ -50,7 +50,7 @@ func (d *Docker) GetContainerId() string {
 	return d.ContainerId
 }
 
-func (d *Docker) Setup(ctx context.Context, logout chan []byte, dockerIdChan chan string, werk *pb.WerkerTask, rc cred.CVRemoteConfig, werkerPort string) (*pb.Result, string) {
+func (d *Docker) Setup(ctx context.Context, logout chan []byte, ctxCleanupIdChan chan string, werk *pb.WerkerTask, rc cred.CVRemoteConfig, werkerPort string) (*pb.Result, string) {
 	var setupMessages []string
 
 	su := build.InitStageUtil("setup")
@@ -127,8 +127,8 @@ func (d *Docker) Setup(ctx context.Context, logout chan []byte, dockerIdChan cha
 
 	//TODO: is creating a channel to use it once overkill....
 	ocelog.Log().Debug("sweet, sending container id back and closing dockeruuid chan")
-	dockerIdChan <- resp.ID
-	close(dockerIdChan)
+	ctxCleanupIdChan <- resp.ID
+	close(ctxCleanupIdChan)
 
 	logout <- []byte(su.GetStageLabel() + "Container created with ID " + resp.ID)
 

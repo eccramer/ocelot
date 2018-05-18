@@ -60,9 +60,9 @@ func (h *SSH) Init(ctx context.Context, hash string, logout chan[]byte) *pb.Resu
 }
 
 // Setup for the BARE werker type will send off the checkout hash as the "docker id" on the docker id channel
-func (h *SSH) Setup(ctx context.Context, logout chan []byte, dockerIdChan chan string, werk *pb.WerkerTask, rc cred.CVRemoteConfig, werkerPort string) (*pb.Result, string) {
+func (h *SSH) Setup(ctx context.Context, logout chan []byte, ctxCleanupIdChan chan string, werk *pb.WerkerTask, rc cred.CVRemoteConfig, werkerPort string) (*pb.Result, string) {
 	log.Log().Infof("setting up hash %s", werk.CheckoutHash)
-	dockerIdChan <- werk.CheckoutHash
+	ctxCleanupIdChan <- werk.CheckoutHash
 	var setupMessages []string
 	su := build.InitStageUtil("setup")
 	cmd := h.SleeplessDownloadTemplateFiles(h.RegisterIP, h.ServicePort)
