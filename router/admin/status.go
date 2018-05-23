@@ -61,6 +61,9 @@ func (g *guideOcelotServer) GetStatus(ctx context.Context, query *pb.StatusQuery
 			if err != nil {
 				return nil, handleStorageError(err)
 			}
+			if len(buildSumz) == 0 {
+				return nil, status.Error(codes.NotFound, fmt.Sprintf("there are no repositories starting with %s", query.PartialRepo))
+			}
 			buildSum = buildSumz[0]
 			goto BUILD_FOUND
 		} else {

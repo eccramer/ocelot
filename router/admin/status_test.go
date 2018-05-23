@@ -3,18 +3,20 @@ package admin
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/shankj3/go-til/consul"
+	"github.com/shankj3/go-til/test"
 	"github.com/shankj3/ocelot/common/credentials"
 	"github.com/shankj3/ocelot/models"
 	"github.com/shankj3/ocelot/models/pb"
 	"github.com/shankj3/ocelot/storage"
 )
 
-func TestGuideOcelotServer_GetStatus(t *testing.T) {
+func TestGuideOcelotServer_GetStatus_retrieveLogic(t *testing.T) {
 	ctx := context.Background()
 	store := &sumStatusStorage{returnErr:true}
 	gos := guideOcelotServer{Storage: store}
@@ -43,19 +45,46 @@ func TestGuideOcelotServer_GetStatus(t *testing.T) {
 	if err == nil {
 		t.Error("shouldreturn an error since only sent status query by account")
 	}
-	store = &sumStatusStorage{returnMulti:true, returnErr: false}
-	store.initTestData()
-	gos.Storage = store
-	gos.RemoteConfig = &credentials.RemoteConfig{}
+}
+
+func TestGuideOcelotServer_GetStatus(t *testing.T) {
+	ctx := context.Background()
+	store := &sumStatusStorage{returnMulti:true, returnErr: false}
+	store.generateTestData()
+	gos := guideOcelotServer{Storage: store, RemoteConfig:&credentials.RemoteConfig{}}
 	gos.RemoteConfig.SetConsul(&consu{})
-	_, err = gos.GetStatus(ctx, &pb.StatusQuery{BuildId:9})
+	_, err := gos.GetStatus(ctx, &pb.StatusQuery{BuildId:9})
 	if err != nil {
 		t.Error("even though return multiple summaries is set, this query is by build id so should not be relevant. error is: " + err.Error())
 	}
+	store.reset()
+	_, err = gos.GetStatus(ctx, &pb.StatusQuery{AcctName:"account", RepoName:"repo"})
+	if err == nil {
+		t.Error("returned more than one build summary and querying by acct & repo, should return error")
+	}
+	if !strings.Contains(err.Error(), "there is no ONE entry that matches the acctname") {
+		t.Error(test.StrFormatErrors("err msg", "there is no ONE entry that matches the acctname .. etc etc", err.Error()))
+	}
+	// change to returning no build summaries
+	store.returnMulti = false
+	store.returnNone = true
+	store.generateTestData()
+	_, err = gos.GetStatus(ctx, &pb.StatusQuery{AcctName:"account", RepoName:"repo"})
+	if err == nil {
+		t.Error("no summaries were returned, should fail")
+	}
+	if !strings.Contains(err.Error(), "no entries that match the acctname/repo") {
+		t.Error("wrong err msg, err msg is: " + err.Error())
+	}
+	_, err = gos.GetStatus(ctx, &pb.StatusQuery{PartialRepo:"rep"})
+	if err == nil {
+		t.Error("no summaries were returned, shoudl fail")
+	}
+	if !strings.Contains(err.Error(), "there are no repositories starting with ") {
+		t.Error("wrong err msg, err msg is: " + err.Error() + "\n and should contain there are no repositories starting with ")
+	}
 
 }
-
-
 
 // test data/structs //
 
@@ -138,6 +167,8 @@ type sumStatusStorage struct {
 	returnErr bool
 	// if true, return multiple build summaries where appropriate
 	returnMulti bool
+	// if true, return no build summaries
+	returnNone bool
 	failed bool
 
 	// generated data
@@ -147,10 +178,10 @@ type sumStatusStorage struct {
 	storage.OcelotStorage
 }
 
-// initTestData will loook at the set test flags and generate data appropriately
+// generateTestData will loook at the set test flags and generate data appropriately
 // if failed is set, then the testSummary field will have a fail status and the stages will also return the last one failed
 // if returnMulti is set, then testSummaries will have a length > 1
-func (s *sumStatusStorage) initTestData() {
+func (s *sumStatusStorage) generateTestData() {
 	if s.failed {
 		s.testSummary = summaryFail
 		s.stages = stagesFail
@@ -158,9 +189,12 @@ func (s *sumStatusStorage) initTestData() {
 		s.testSummary = summaryGood
 		s.stages = stagesGood
 	}
-	if s.returnMulti {
+	switch {
+	case s.returnNone:
+		s.testSummaries = []models.BuildSummary{}
+	case s.returnMulti:
 		s.testSummaries = []models.BuildSummary{s.testSummary, s.testSummary}
-	} else {
+	default:
 		s.testSummaries = []models.BuildSummary{s.testSummary}
 	}
 }
