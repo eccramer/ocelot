@@ -1182,6 +1182,14 @@
             "in": "query",
             "required": false,
             "type": "string"
+          },
+          {
+            "name": "buildId",
+            "description": "buildId is the build id # (assigned by ocelot) to get status of.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
           }
         ],
         "tags": [

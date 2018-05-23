@@ -26,7 +26,7 @@ func configure() cred.CVRemoteConfig {
 	ocelog.InitializeLog(loglevel)
 	ocelog.Log().Debug()
 	rc, err := cred.GetInstance(consuladdr, consulport, "")
-	ocelog.Log().Debug("consul address is ", rc.GetConsul().Config.Address)
+	//ocelog.Log().Debug("consul address is ", rc.GetConsul().Config.Address)
 	if err != nil {
 		ocelog.IncludeErrField(err).Fatal("unable to get instance of remote config, exiting")
 	}
