@@ -29,36 +29,18 @@ func (w *launcher) runStages(ctx context.Context, werk *pb.WerkerTask, builder b
 		ocelog.Log().WithField("hash", werk.CheckoutHash).Info("finished stage: ", stage.Name)
 		stageDura := time.Now().Sub(stageStart)
 
-		if stageResult.Status == pb.StageResultVal_FAIL {
-			fail = true
-			if err = storeStageToDb(w.Store, werk.Id, stageResult, stageStart, stageDura.Seconds()); err != nil {
-				ocelog.IncludeErrField(err).Error("couldn't store build output")
-				return
-			}
-			break
-		}
-
-
 		if err = storeStageToDb(w.Store, werk.Id, stageResult, stageStart, stageDura.Seconds()); err != nil {
 			ocelog.IncludeErrField(err).Error("couldn't store build output")
 			return
 		}
-
+		if stageResult.Status == pb.StageResultVal_FAIL {
+			fail = true
+			break
+		}
 	}
 
 	dura = time.Now().Sub(start)
 	return
-}
-
-
-// branchOk is an "if elem in list" check.
-func branchOk(branch string, buildBranches []string) bool {
-	for _, goodBranch := range buildBranches {
-		if goodBranch == branch {
-			return true
-		}
-	}
-	return false
 }
 
 // handleTriggers deals with the triggers section of the of the stage. Right now we only support a list of branches that should "trigger" this stage to run.
@@ -66,6 +48,7 @@ func branchOk(branch string, buildBranches []string) bool {
 //  If the current branch is not in the list of trigger branches, shouldSkip of true will be returned and the stage should not be executed.
 //  If the stage is a shouldSkip, it will also save to the database that the stage will be skipped.
 func handleTriggers(branch string, id int64, store storage.BuildStage, stage *pb.Stage) (shouldSkip bool, err error) {
+	var branchGood bool
 	// null value of bool is false, so shouldSkip is false until told otherwise
 	if stage.Trigger != nil {
 		if len(stage.Trigger.Branches) == 0 {
@@ -73,14 +56,15 @@ func handleTriggers(branch string, id int64, store storage.BuildStage, stage *pb
 			// return false, the block is empty and there is nothing to check
 			return
 		}
-		branchGood, err := build.BranchRegexOk(branch, stage.Trigger.Branches)
+		branchGood, err = build.BranchRegexOk(branch, stage.Trigger.Branches)
 		if err != nil {
 			result := &pb.Result{stage.Name, pb.StageResultVal_FAIL, err.Error(), []string{"failed to check if current branch fit the trigger criteria"}}
 			// not sure if we should store, but i think its good visibility especially for right now
-			if err = storeStageToDb(store, id, result, time.Now(), 0); err != nil {
+			if err2 := storeStageToDb(store, id, result, time.Now(), 0); err2 != nil {
 				ocelog.IncludeErrField(err).Error("couldn't store build output")
-				return shouldSkip, err
+				return true, err2
 			}
+			return true, err
 		}
 		if !branchGood {
 			result := &pb.Result{stage.Name, pb.StageResultVal_PASS, "", []string{fmt.Sprintf("skipping stage because %s is not in the trigger branches list", branch)}}

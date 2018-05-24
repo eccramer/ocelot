@@ -126,6 +126,7 @@ func (w *launcher) MakeItSo(werk *pb.WerkerTask, builder build.Builder, finish, 
 //	- `BUILD_ID`
 //	- `GIT_HASH_SHORT`
 //	- `GIT_BRANCH`
+//  - `WORKSPACE`
 func (w *launcher) addGlobalEnvVars(werk *pb.WerkerTask, builder build.Builder) {
 	paddedEnvs := []string{
 		fmt.Sprintf("GIT_HASH=%s", werk.CheckoutHash),

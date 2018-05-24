@@ -28,8 +28,23 @@ const (
 	Panic
 )
 
-// Valet is the overseer of builds. It handles registration of when the build is started, what stage it is actively on,
-// when to close the channel that signifies to nsqpb to stop refreshing the status of the message
+// BuildValet is an interface for the overseer of builds. It handles registration of when the build is started, what stage it is actively on,
+//   when to close the channel that signifies to nsqpb to stop refreshing the status of the message
+type BuildValet interface {
+	Reset(newStage string, hash string) error
+	StoreInterrupt(typ Interrupt)
+	StartBuild(consulet *consul.Consulet, hash string, id int64) error
+	RemoveAllTrace()
+	MakeItSoDed(finish chan int)
+	RegisterDoneChan(hash string, done chan int)
+	UnregisterDoneChan(hash string)
+	CallDoneForEverything()
+	SignalRecvDed()
+	c.Cleaner
+}
+
+
+// Valet is an implementation of BuildValet that uses Consul for registration handling
 type Valet struct {
 	RemoteConfig    cred.CVRemoteConfig
 	store			storage.OcelotStorage
@@ -39,6 +54,7 @@ type Valet struct {
 	sync.Mutex
 	c.Cleaner
 }
+
 
 func NewValet(rc cred.CVRemoteConfig, uid uuid.UUID, werkerType models.WerkType, store storage.OcelotStorage, facts *models.SSHFacts) *Valet {
 	valet := &Valet{RemoteConfig: rc, WerkerUuid: uid, doneChannels: make(map[string]chan int), store: store}

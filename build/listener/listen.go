@@ -27,11 +27,11 @@ type WorkerMsgHandler struct {
 	BuildCtxChan chan *models.BuildContext
 	Basher       *basher.Basher
 	Store        storage.OcelotStorage
-	BuildValet   *valet.Valet
+	BuildValet   valet.BuildValet
 	RemoteConfig credentials.CVRemoteConfig
 }
 
-func NewWorkerMsgHandler(topic string, facts *models.WerkerFacts, b *basher.Basher, st storage.OcelotStorage, bv *valet.Valet, rc credentials.CVRemoteConfig, tunnel chan *models.Transport, buildChan chan *models.BuildContext) *WorkerMsgHandler {
+func NewWorkerMsgHandler(topic string, facts *models.WerkerFacts, b *basher.Basher, st storage.OcelotStorage, bv valet.BuildValet, rc credentials.CVRemoteConfig, tunnel chan *models.Transport, buildChan chan *models.BuildContext) *WorkerMsgHandler {
 	return &WorkerMsgHandler{
 		Topic:        topic,
 		Basher:       b,

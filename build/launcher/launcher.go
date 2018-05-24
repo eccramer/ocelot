@@ -18,7 +18,7 @@ type launcher struct {
 	BuildCtxChan chan *models.BuildContext
 	Basher       *basher.Basher
 	Store        storage.OcelotStorage
-	BuildValet   *valet.Valet
+	BuildValet   valet.BuildValet
 	Remote 		 models.VCSHandler
 }
 
@@ -28,7 +28,7 @@ func NewLauncher(facts *models.WerkerFacts,
 	BuildCtxChan chan *models.BuildContext,
 	bshr *basher.Basher,
 	store storage.OcelotStorage,
-	bv *valet.Valet) *launcher {
+	bv valet.BuildValet) *launcher {
 	return &launcher{
 		WerkerFacts:  facts,
 		RemoteConf:   remoteConf,
