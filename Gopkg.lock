@@ -165,10 +165,7 @@
 
 [[projects]]
   name = "github.com/gogo/protobuf"
-  packages = [
-    "proto",
-    "protoc-gen-gogo/descriptor"
-  ]
+  packages = ["proto"]
   revision = "1adfc126b41513cc696b209667c8656ea7aac67c"
   version = "v1.0.0"
 
@@ -177,7 +174,6 @@
   packages = [
     "jsonpb",
     "proto",
-    "protoc-gen-go/descriptor",
     "ptypes",
     "ptypes/any",
     "ptypes/duration",
@@ -226,7 +222,6 @@
 [[projects]]
   name = "github.com/grpc-ecosystem/grpc-gateway"
   packages = [
-    "protoc-gen-swagger/options",
     "runtime",
     "runtime/internal",
     "utilities"
@@ -508,12 +503,6 @@
   revision = "63d60e9d0dbc60cf9164e6510889b0db6683d98c"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/mwitkow/go-proto-validators"
-  packages = ["."]
-  revision = "0950a79900071e9f3f5979b78078c599376422fd"
-
-[[projects]]
   name = "github.com/namsral/flag"
   packages = ["."]
   revision = "71ceffbeb0ba60fccc853971bb3ed4d7d90bfd04"
@@ -732,10 +721,7 @@
 [[projects]]
   branch = "master"
   name = "google.golang.org/genproto"
-  packages = [
-    "googleapis/api/annotations",
-    "googleapis/rpc/status"
-  ]
+  packages = ["googleapis/rpc/status"]
   revision = "81158efcc9f219c511e4d3c0d61a0e6e49c01a24"
 
 [[projects]]
@@ -797,6 +783,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "1378e6d76149176cd2e847d4a8d014c6ec5ad6949406730a9da8ca6a46d5251b"
+  inputs-digest = "87890569517b917aaa9822397b1191a050610610ffb64a0353973a35439c7177"
   solver-name = "gps-cdcl"
   solver-version = 1
