@@ -63,6 +63,10 @@ upload-clients: versionexists ## upload already build clients in pkg/os_amd64/oc
 	@aws s3 cp --acl public-read-write --content-disposition attachment pkg/windows_amd64/ocelot_$(VERSION).zip s3://ocelotty/windows-ocelot-$(VERSION).zip
 	@aws s3 cp --acl public-read-write --content-disposition attachment pkg/linux_amd64/ocelot_$(VERSION).zip s3://ocelotty/linux-ocelot-$(VERSION).zip
 
+upload-all: upload-clients # upload werkers and clients to s3
+	@aws s3 cp --acl public-read-write --content-disposition attachment pkg/darwin_amd64/darwin-werker-$(VERSION).zip s3://ocelotty/darwin-werker-$(VERSION).zip
+	@aws s3 cp --acl public-read-write --content-disposition attachment pkg/linux_amd64/linux-werker-$(VERSION).zip s3://ocelotty/darwin-werker-$(VERSION).zip
+
 all-binaries-rel: versionexists ## build all binaries in RELEASE MODE and save them to pkg
 	# darwin client
 	env GOOS=darwin GOARCH=amd64 go build  -ldflags '$(GOLDFLAGS_REL)' -tags '$(GOTAGS)' -o pkg/darwin_amd64/ocelot  cmd/ocelot/main.go
