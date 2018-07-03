@@ -98,6 +98,11 @@ func (p *PostgresStorage) Healthy() bool {
 	}
 	return true
 }
+
+func (p *PostgresStorage) Detail() string {
+	return fmt.Sprintf("jdbc:postgresql://%s:%d/%s", p.location, p.port, p.dbLoc)
+}
+
 func (p *PostgresStorage) Close() {
 	err := p.db.Close()
 	if err != nil {

@@ -70,6 +70,7 @@ type CredTable interface {
 //GetCredAt(path string, hideSecret bool, rcc RemoteConfigCred) (map[string]RemoteConfigCred, error)
 type HealthyChkr interface {
 	Healthy() bool
+	Detail() string
 }
 
 type OcelotStorage interface {
