@@ -8,8 +8,8 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/mitchellh/cli"
 	"github.com/shankj3/ocelot/client/commandhelper"
-	"github.com/shankj3/ocelot/client/creds/repocreds/list"
-	"github.com/shankj3/ocelot/client/creds/vcscreds/list"
+	//"github.com/shankj3/ocelot/client/creds/repocreds/list"
+	//"github.com/shankj3/ocelot/client/creds/vcscreds/list"
 	models "github.com/shankj3/ocelot/models/pb"
 )
 
@@ -24,6 +24,7 @@ type cmd struct {
 	flags         *flag.FlagSet
 	accountFilter string
 	config        *commandhelper.ClientConfig
+	account       string
 }
 
 func (c *cmd) GetClient() models.GuideOcelotClient {
@@ -39,39 +40,77 @@ func (c *cmd) GetConfig() *commandhelper.ClientConfig {
 }
 
 func (c *cmd) init() {
-
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.StringVar(&c.account, "account", "",
+		"Account to filter credentials on")
+}
+
+func writeCred(ui cli.Ui, account string, cred models.OcyCredder) {
+	if account == "" || account == cred.GetAcctName() {
+		ui.Info(cred.ClientString())
+	}
 }
 
 func (c *cmd) Run(args []string) int {
+	if err := c.flags.Parse(args); err != nil {
+		return 1
+	}
 	ctx := context.Background()
 	var protoReq empty.Empty
 	if err := commandhelper.CheckConnection(c, ctx); err != nil {
 		return 1
 	}
-	msg, err := c.config.Client.GetAllCreds(ctx, &protoReq)
-	if err != nil {
-		c.UI.Error(fmt.Sprint("Could not get list of credentials!\n Error: ", err.Error()))
-		return 1
-	}
-	if len(msg.RepoCreds.Repo) > 0 {
-		repocredslist.Header(c.UI)
-		for _, oneline := range msg.RepoCreds.Repo {
-			c.UI.Output(repocredslist.Prettify(oneline))
-		}
-	} else {
-		repocredslist.NoDataHeader(c.UI)
-	}
+	fmt.Println("hi")
+	//msg, err := c.config.Client.GetAllCreds(ctx, &protoReq)
+	//if err != nil {
+	//	c.UI.Error(fmt.Sprint("Could not get list of credentials!\n Error: ", err.Error()))
+	//	return 1
+	//}
 
-	if len(msg.VcsCreds.Vcs) > 0 {
-		buildcredslist.Header(c.UI)
-		for _, oneline := range msg.VcsCreds.Vcs {
-			c.UI.Output(buildcredslist.Prettify(oneline))
-		}
-	} else {
-		buildcredslist.NoDataHeader(c.UI)
-	}
+	vcs, _ := c.config.Client.GetVCSCreds(ctx, &protoReq)
+	repo, _ := c.config.Client.GetRepoCreds(ctx, &protoReq)
+	notify, _ := c.config.Client.GetNotifyCreds(ctx, &protoReq)
+	env, _ := c.config.Client.GetGenericCreds(ctx, &protoReq)
+	ssh, _ := c.config.Client.GetSSHCreds(ctx, &protoReq)
+	k8s, _ := c.config.Client.GetK8SCreds(ctx, &protoReq)
 
+	c.UI.Info("---- All Credentials ----\n")
+	if vcs != nil {
+		c.UI.Info("---- VCS ----")
+		for _, cred := range vcs.Vcs {
+			writeCred(c.UI, c.account, cred)
+		}
+	}
+	if repo != nil {
+		c.UI.Info("---- REPO ----")
+		for _, cred := range repo.Repo {
+			writeCred(c.UI, c.account, cred)
+		}
+	}
+	if notify != nil {
+		c.UI.Info("---- NOTIFY ----")
+		for _, cred := range notify.Creds {
+			writeCred(c.UI, c.account, cred)
+		}
+	}
+	if env != nil {
+		c.UI.Info("---- ENV ----")
+		for _, cred := range env.Creds {
+			writeCred(c.UI, c.account, cred)
+		}
+	}
+	if ssh != nil {
+		c.UI.Info("--- SSH ---")
+		for _, cred := range ssh.Keys {
+			writeCred(c.UI, c.account, cred)
+		}
+	}
+	if k8s != nil {
+		c.UI.Info("--- K8S ---")
+		for _, cred := range k8s.K8SCreds {
+			writeCred(c.UI, c.account, cred)
+		}
+	}
 	return 0
 }
 
@@ -87,5 +126,5 @@ const synopsis = "list all credentials added to ocelot"
 const help = `
 Usage: ocelot creds list
 
-  Will list all credentials that have been added to ocelot. //todo filter on acct name
+  Will list all credentials that have been added to ocelot. 
 `

@@ -414,7 +414,7 @@ func (rc *RemoteConfig) getForFilesystem() (*StorageCreds, error) {
 	return &StorageCreds{Location: string(pair.Value)}, nil
 }
 
-func (rc *RemoteConfig) GetOcelotStorage() (storage.OcelotStorage, error) {
+func (rc *RemoteConfig)  GetOcelotStorage() (storage.OcelotStorage, error) {
 	typ, err := rc.GetStorageType()
 	if err != nil {
 		return nil, err

@@ -20,6 +20,7 @@ type OcyCredder interface {
 	GetIdentifier() string
 	GetSubType() SubCredType
 	ValidateForInsert() *ValidationErr
+	ClientString() string
 }
 
 func Invalidate(reason string) *ValidationErr {
@@ -85,6 +86,17 @@ func (m *RepoCreds) ValidateForInsert() *ValidationErr {
 	return nil
 }
 
+func (m *RepoCreds) ClientString() string {
+	fallback := `Username: %s
+Password: %s
+RepoUrl: %s
+AcctName: %s
+SubType: %s
+Identifier: %s
+`
+	return fmt.Sprintf(fallback, m.Username, m.Password, m.RepoUrl, m.AcctName, strings.ToLower(m.SubType.String()), m.Identifier)
+}
+
 
 func NewVCSCreds() *VCSCreds {
 	return &VCSCreds{}
@@ -139,6 +151,19 @@ func (m *VCSCreds) ValidateForInsert() *ValidationErr {
 	return nil
 }
 
+func (m *VCSCreds) ClientString() string {
+	pretty := `ClientId: %s
+ClientSecret: %s
+TokenURL: %s
+AcctName: %s
+SubType: %s
+Identifier: %s
+[%s]
+
+`
+	return fmt.Sprintf(pretty, m.ClientId, m.ClientSecret, m.TokenURL, m.AcctName, strings.ToLower(m.SubType.String()), m.Identifier, m.SshFileLoc)
+}
+
 
 func NewK8sCreds() *K8SCreds {
 	return &K8SCreds{}
@@ -175,6 +200,14 @@ func (m *K8SCreds) ValidateForInsert() *ValidationErr {
 	return nil
 }
 
+func (m *K8SCreds) ClientString() string {
+	str := `Account: %s
+ConfigName: %s
+`
+	return fmt.Sprintf(str, m.AcctName, m.Identifier)
+}
+
+
 func (m *SSHKeyWrapper) GetClientSecret() string {
 	return string(m.PrivateKey)
 }
@@ -198,6 +231,15 @@ func (m *SSHKeyWrapper) ValidateForInsert() *ValidationErr {
 	}
 	return nil
 }
+
+func (m *SSHKeyWrapper) ClientString() string {
+	pretty := `Acccount: %s
+Identifier: %s
+%s
+`
+	return fmt.Sprintf(pretty, m.AcctName, m.Identifier, "[On File]")
+}
+
 
 func (m *AppleCreds) ValidateForInsert() *ValidationErr {
 	if errorz := validateCommonFieldsForInsert(m); len(errorz) != 0 {
@@ -225,6 +267,14 @@ func (m *AppleCreds) UnmarshalAdditionalFields(fields []byte) error {
 	return nil
 }
 
+func (m *AppleCreds) ClientString() string {
+	pretty := `Acccount: %s
+Identifier: %s
+%s
+`
+	return fmt.Sprintf(pretty, m.AcctName, m.Identifier, "[On File]")
+}
+
 func (m *NotifyCreds) ValidateForInsert() *ValidationErr {
 	errr := validateCommonFieldsForInsert(m)
 	if len(errr) != 0 {
@@ -243,6 +293,14 @@ func (m *NotifyCreds) UnmarshalAdditionalFields(fields []byte) error {
 
 func (m *NotifyCreds) SetSecret(secret string) {
 	m.ClientSecret = secret
+}
+
+func (m *NotifyCreds) ClientString() string {
+	str := `AcctName: %s
+Identifier: %s
+Type: %s
+`
+	return fmt.Sprintf(str, m.AcctName, m.Identifier, m.SubType)
 }
 
 func (m *GenericCreds) SetSecret(str string) {
@@ -271,6 +329,16 @@ func (m *GenericCreds) ValidateForInsert() *ValidationErr {
 	}
 	return nil
 }
+
+
+func (m *GenericCreds) ClientString() string {
+	str := `AcctName: %s
+Identifier: %s
+Type: %s
+`
+	return fmt.Sprintf(str, m.AcctName, m.Identifier, m.SubType)
+}
+
 
 
 func validateCommonFieldsForInsert(credder OcyCredder) (errors []string) {
