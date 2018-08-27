@@ -213,7 +213,7 @@ func (bb *Bitbucket) CreateWebhook(webhookURL string) error {
 	if !bb.FindWebhooks(webhookURL) {
 		//create webhook if one does not already exist
 		newWebhook := &pbb.CreateWebhook{
-			Description: "marianne did this",
+			Description: "ocelot-generated",
 			Active:      true,
 			Url:         bb.GetCallbackURL(),
 			Events:      common.BitbucketEvents,

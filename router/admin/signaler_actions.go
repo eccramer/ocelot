@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/gorhill/cronexpr"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/shankj3/ocelot/build"
@@ -218,6 +219,10 @@ func (g *guideOcelotServer) WatchRepo(ctx context.Context, repoAcct *pb.RepoAcco
 func (g *guideOcelotServer) PollRepo(ctx context.Context, poll *pb.PollRequest) (*empty.Empty, error) {
 	if poll.Account == "" || poll.Repo == "" || poll.Cron == "" || poll.Branches == "" {
 		return nil, status.Error(codes.InvalidArgument, "account, repo, cron, and branches are required fields")
+	}
+	if _, err := cronexpr.Parse(poll.Cron); err != nil {
+		errStr := `Supplied cron expression is not valid! Received: %s | Error: %s`
+		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf(errStr, poll.Cron, err.Error()))
 	}
 	log.Log().Info("recieved poll request for ", poll.Account, poll.Repo, poll.Cron)
 	empti := &empty.Empty{}
