@@ -33,6 +33,7 @@ type BuildSum interface {
 	RetrieveLatestSum(gitHash string) (*pb.BuildSummary, error)
 	RetrieveHashStartsWith(partialGitHash string) ([]*pb.BuildSummary, error)
 	RetrieveLastFewSums(repo string, account string, limit int32) ([]*pb.BuildSummary, error)
+	GetLastSummariesByStatus(limit int, status pb.BuildStatus) ([]*pb.BuildSummary, error)
 	RetrieveAcctRepo(partialRepo string) ([]*pb.BuildSummary, error)
 	StartBuild(id int64) error
 	StoreFailedValidation(id int64) error

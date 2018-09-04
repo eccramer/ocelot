@@ -372,6 +372,61 @@ func (p *PostgresStorage) RetrieveSumByBuildId(buildId int64) (*pb.BuildSummary,
 	return &sum, err
 }
 
+
+// GetLastSummaries will get last n summaries, not bound  by account
+// if status == pb.BuildStatus_NIL, then all statuses will be returned
+func (p *PostgresStorage) GetLastSummariesByStatus(limit int, status pb.BuildStatus) ([]*pb.BuildSummary, error){
+	var sums []*pb.BuildSummary
+	start := startTransaction()
+	defer finishTransaction(start, "build_summary", "read")
+	if err := p.Connect(); err != nil {
+		return nil, errors.New("could not connect to postgres: " + err.Error())
+	}
+	partialQueryStr := `SELECT hash, failed, starttime, account, buildtime, repo, id, branch, queuetime, status from build_summary %s limit %d;`
+	var queryStr string
+	if status != pb.BuildStatus_NIL {
+		queryStr = fmt.Sprintf(partialQueryStr, "WHERE status=$1", limit)
+	} else {
+		queryStr = fmt.Sprintf(partialQueryStr, "", limit)
+	}
+	stmt, err := p.db.Prepare(queryStr)
+	if err != nil {
+		ocelog.IncludeErrField(err).Error("couldn't prepare stmt")
+		return nil, err
+	}
+	defer stmt.Close()
+	var rows *sql.Rows
+	if status != pb.BuildStatus_NIL {
+		rows, err = stmt.Query(status)
+	} else {
+		rows, err = stmt.Query()
+	}
+	if err != nil {
+		ocelog.IncludeErrField(err)
+		return sums, err
+	}
+	sums, err = mapSumRowsToSums(rows)
+	return sums, err
+}
+
+func mapSumRowsToSums(rows *sql.Rows) (sums []*pb.BuildSummary, err error) {
+	var queuetime, starttime time.Time
+	defer rows.Close()
+	for rows.Next() {
+		sum := pb.BuildSummary{}
+		if err = rows.Scan(&sum.Hash, &sum.Failed, &starttime, &sum.Account, &sum.BuildDuration, &sum.Repo, &sum.BuildId, &sum.Branch, &queuetime, &sum.Status); err != nil {
+			if err == sql.ErrNoRows {
+				return sums, BuildSumNotFound("none found")
+			}
+			return sums, err
+		}
+		sum.BuildTime = &timestamp.Timestamp{Seconds: starttime.Unix()}
+		sum.QueueTime = &timestamp.Timestamp{Seconds: queuetime.Unix()}
+		sums = append(sums, &sum)
+	}
+	return sums, nil
+}
+
 // RetrieveLastFewSums will return < limit> number of summaries that correlate with a repo and account.
 func (p *PostgresStorage) RetrieveLastFewSums(repo string, account string, limit int32) ([]*pb.BuildSummary, error) {
 	var sums []*pb.BuildSummary
@@ -387,27 +442,14 @@ func (p *PostgresStorage) RetrieveLastFewSums(repo string, account string, limit
 		return nil, err
 	}
 	defer stmt.Close()
-	var queuetime, starttime time.Time
 	rows, err := stmt.Query(repo, account)
 
 	if err != nil {
 		ocelog.IncludeErrField(err)
 		return sums, err
 	}
-	defer rows.Close()
-	for rows.Next() {
-		sum := pb.BuildSummary{}
-		if err = rows.Scan(&sum.Hash, &sum.Failed, &starttime, &sum.Account, &sum.BuildDuration, &sum.Repo, &sum.BuildId, &sum.Branch, &queuetime, &sum.Status); err != nil {
-			if err == sql.ErrNoRows {
-				return sums, BuildSumNotFound("account: " + account + "and repo: " + repo)
-			}
-			return sums, err
-		}
-		sum.BuildTime = &timestamp.Timestamp{Seconds: starttime.Unix()}
-		sum.QueueTime = &timestamp.Timestamp{Seconds: queuetime.Unix()}
-		sums = append(sums, &sum)
-	}
-	return sums, nil
+	sums, err = mapSumRowsToSums(rows)
+	return sums, err
 }
 
 // RetrieveAcctRepo will return to you a list of accountname + repositories that matches starting with partialRepo
