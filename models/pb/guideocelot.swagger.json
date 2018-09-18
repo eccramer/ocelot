@@ -143,12 +143,14 @@
         "parameters": [
           {
             "name": "acctName",
+            "description": "account name to associate this credential with",
             "in": "path",
             "required": true,
             "type": "string"
           },
           {
             "name": "identifier",
+            "description": "identifier in dev profile creds is currently irrelevant, as there can only be one per account",
             "in": "path",
             "required": true,
             "type": "string"
@@ -211,12 +213,14 @@
         "parameters": [
           {
             "name": "acctName",
+            "description": "account name to associate this credential with",
             "in": "path",
             "required": true,
             "type": "string"
           },
           {
             "name": "identifier",
+            "description": "identifier in dev profile creds is currently irrelevant, as there can only be one per account",
             "in": "path",
             "required": true,
             "type": "string"
@@ -299,14 +303,46 @@
         "parameters": [
           {
             "name": "acctName",
+            "description": "account name to associate integration cred with",
             "in": "path",
             "required": true,
             "type": "string"
           },
           {
             "name": "identifier",
+            "description": "identifier is the unique identifier for the integration",
             "in": "path",
             "required": true,
+            "type": "string"
+          },
+          {
+            "name": "subType",
+            "description": "Subtypes are ENV, HELM_REPO.\n\n - BITBUCKET: / VCS ///\n - NEXUS: / REPO ///\n - KUBECONF: / K8S ///\n - SSHKEY: / SSH ///\n - SLACK: / NOTIFY ///\n - DEVPROFILE: / APPLE ///\n - ENV: / GENERIC ///",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "NIL_SCT",
+              "BITBUCKET",
+              "GITHUB",
+              "NEXUS",
+              "MAVEN",
+              "DOCKER",
+              "MINIO",
+              "KUBECONF",
+              "SSHKEY",
+              "SLACK",
+              "DEVPROFILE",
+              "ENV",
+              "HELM_REPO"
+            ],
+            "default": "NIL_SCT"
+          },
+          {
+            "name": "clientSecret",
+            "description": "clientSecret is the secret associated with the integration cred.",
+            "in": "query",
+            "required": false,
             "type": "string"
           }
         ],
@@ -330,12 +366,14 @@
         "parameters": [
           {
             "name": "acctName",
+            "description": "account name to associate integration cred with",
             "in": "path",
             "required": true,
             "type": "string"
           },
           {
             "name": "identifier",
+            "description": "identifier is the unique identifier for the integration",
             "in": "path",
             "required": true,
             "type": "string"
@@ -418,14 +456,46 @@
         "parameters": [
           {
             "name": "acctName",
+            "description": "account name to associate integration cred with",
             "in": "path",
             "required": true,
             "type": "string"
           },
           {
             "name": "identifier",
+            "description": "identifier is the unique identifier for the integration",
             "in": "path",
             "required": true,
+            "type": "string"
+          },
+          {
+            "name": "subType",
+            "description": "Subtypes are ENV, HELM_REPO.\n\n - BITBUCKET: / VCS ///\n - NEXUS: / REPO ///\n - KUBECONF: / K8S ///\n - SSHKEY: / SSH ///\n - SLACK: / NOTIFY ///\n - DEVPROFILE: / APPLE ///\n - ENV: / GENERIC ///",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "NIL_SCT",
+              "BITBUCKET",
+              "GITHUB",
+              "NEXUS",
+              "MAVEN",
+              "DOCKER",
+              "MINIO",
+              "KUBECONF",
+              "SSHKEY",
+              "SLACK",
+              "DEVPROFILE",
+              "ENV",
+              "HELM_REPO"
+            ],
+            "default": "NIL_SCT"
+          },
+          {
+            "name": "clientSecret",
+            "description": "clientSecret is the secret associated with the integration cred.",
+            "in": "query",
+            "required": false,
             "type": "string"
           }
         ],
@@ -449,12 +519,14 @@
         "parameters": [
           {
             "name": "acctName",
+            "description": "account name to associate integration cred with",
             "in": "path",
             "required": true,
             "type": "string"
           },
           {
             "name": "identifier",
+            "description": "identifier is the unique identifier for the integration",
             "in": "path",
             "required": true,
             "type": "string"
@@ -535,12 +607,14 @@
         "parameters": [
           {
             "name": "acctName",
+            "description": "account name to associate this credential with",
             "in": "path",
             "required": true,
             "type": "string"
           },
           {
             "name": "identifier",
+            "description": "identifier in K8s creds, typically the name of the cluster, as expected use case is one config per cluster",
             "in": "path",
             "required": true,
             "type": "string"
@@ -595,15 +669,47 @@
         "parameters": [
           {
             "name": "acctName",
+            "description": "account name to associate this credential with",
             "in": "path",
             "required": true,
             "type": "string"
           },
           {
             "name": "identifier",
+            "description": "identifier in K8s creds, typically the name of the cluster, as expected use case is one config per cluster",
             "in": "path",
             "required": true,
             "type": "string"
+          },
+          {
+            "name": "k8sContents",
+            "description": "k8scontents is the contents of the kubeconfig file.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "subType",
+            "description": "@inject_tag: yaml:\"subType\"\nthere is currently only one subtype for k8SCreds, and it is KUBECONF.\n\n - BITBUCKET: / VCS ///\n - NEXUS: / REPO ///\n - KUBECONF: / K8S ///\n - SSHKEY: / SSH ///\n - SLACK: / NOTIFY ///\n - DEVPROFILE: / APPLE ///\n - ENV: / GENERIC ///",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "NIL_SCT",
+              "BITBUCKET",
+              "GITHUB",
+              "NEXUS",
+              "MAVEN",
+              "DOCKER",
+              "MINIO",
+              "KUBECONF",
+              "SSHKEY",
+              "SLACK",
+              "DEVPROFILE",
+              "ENV",
+              "HELM_REPO"
+            ],
+            "default": "NIL_SCT"
           }
         ],
         "tags": [
@@ -625,12 +731,14 @@
         "parameters": [
           {
             "name": "acctName",
+            "description": "account name to associate this credential with",
             "in": "path",
             "required": true,
             "type": "string"
           },
           {
             "name": "identifier",
+            "description": "identifier in K8s creds, typically the name of the cluster, as expected use case is one config per cluster",
             "in": "path",
             "required": true,
             "type": "string"
@@ -711,12 +819,14 @@
         "parameters": [
           {
             "name": "acctName",
+            "description": "account name to associate integration cred with",
             "in": "path",
             "required": true,
             "type": "string"
           },
           {
             "name": "identifier",
+            "description": "identifier is the unique identifier for the integration",
             "in": "path",
             "required": true,
             "type": "string"
@@ -778,14 +888,53 @@
         "parameters": [
           {
             "name": "acctName",
+            "description": "account name to associate integration cred with",
             "in": "path",
             "required": true,
             "type": "string"
           },
           {
             "name": "identifier",
+            "description": "identifier is the unique identifier for the integration",
             "in": "path",
             "required": true,
+            "type": "string"
+          },
+          {
+            "name": "subType",
+            "description": "There is currently only one subType that is valid for Integrations, and it is SLACK.\n\n - BITBUCKET: / VCS ///\n - NEXUS: / REPO ///\n - KUBECONF: / K8S ///\n - SSHKEY: / SSH ///\n - SLACK: / NOTIFY ///\n - DEVPROFILE: / APPLE ///\n - ENV: / GENERIC ///",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "NIL_SCT",
+              "BITBUCKET",
+              "GITHUB",
+              "NEXUS",
+              "MAVEN",
+              "DOCKER",
+              "MINIO",
+              "KUBECONF",
+              "SSHKEY",
+              "SLACK",
+              "DEVPROFILE",
+              "ENV",
+              "HELM_REPO"
+            ],
+            "default": "NIL_SCT"
+          },
+          {
+            "name": "clientSecret",
+            "description": "clientSecret is the secret associated with the integration cred.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "detailUrlBase",
+            "description": "detailUrlBase is the base url for an ocelot ui. when building the notification, will\n  add {{detailUrlBase}}/repos/{{account}}/{{repo}}/{{buildId}}.",
+            "in": "query",
+            "required": false,
             "type": "string"
           }
         ],
@@ -808,12 +957,14 @@
         "parameters": [
           {
             "name": "acctName",
+            "description": "account name to associate integration cred with",
             "in": "path",
             "required": true,
             "type": "string"
           },
           {
             "name": "identifier",
+            "description": "identifier is the unique identifier for the integration",
             "in": "path",
             "required": true,
             "type": "string"
@@ -895,12 +1046,14 @@
         "parameters": [
           {
             "name": "acctName",
+            "description": "@inject_tag: yaml:\"acctName\"\naccount name (same as from vcs)",
             "in": "path",
             "required": true,
             "type": "string"
           },
           {
             "name": "identifier",
+            "description": "identifier is the unique identifier that is associated with this acctName",
             "in": "path",
             "required": true,
             "type": "string"
@@ -969,15 +1122,61 @@
         "parameters": [
           {
             "name": "acctName",
+            "description": "@inject_tag: yaml:\"acctName\"\naccount name (same as from vcs)",
             "in": "path",
             "required": true,
             "type": "string"
           },
           {
             "name": "identifier",
+            "description": "identifier is the unique identifier that is associated with this acctName",
             "in": "path",
             "required": true,
             "type": "string"
+          },
+          {
+            "name": "username",
+            "description": "username of repository.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "password",
+            "description": "password of repository.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "repoUrl",
+            "description": "@inject_tag: yaml:\"repoUrl\"\nrepoUrl is the url that is associated with that repository, for example hub.docker.io.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "subType",
+            "description": "@inject_tag: yaml:\"subType\"\nthere are two subtypes that are valid for RepoCreds: DOCKER, NEXUS.\n\n - BITBUCKET: / VCS ///\n - NEXUS: / REPO ///\n - KUBECONF: / K8S ///\n - SSHKEY: / SSH ///\n - SLACK: / NOTIFY ///\n - DEVPROFILE: / APPLE ///\n - ENV: / GENERIC ///",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "NIL_SCT",
+              "BITBUCKET",
+              "GITHUB",
+              "NEXUS",
+              "MAVEN",
+              "DOCKER",
+              "MINIO",
+              "KUBECONF",
+              "SSHKEY",
+              "SLACK",
+              "DEVPROFILE",
+              "ENV",
+              "HELM_REPO"
+            ],
+            "default": "NIL_SCT"
           }
         ],
         "tags": [
@@ -1000,12 +1199,14 @@
         "parameters": [
           {
             "name": "acctName",
+            "description": "@inject_tag: yaml:\"acctName\"\naccount name (same as from vcs)",
             "in": "path",
             "required": true,
             "type": "string"
           },
           {
             "name": "identifier",
+            "description": "identifier is the unique identifier that is associated with this acctName",
             "in": "path",
             "required": true,
             "type": "string"
@@ -1086,12 +1287,14 @@
         "parameters": [
           {
             "name": "acctName",
+            "description": "account name to associate ssh key with",
             "in": "path",
             "required": true,
             "type": "string"
           },
           {
             "name": "identifier",
+            "description": "identifier is the unique identifier for when an ssh key is not associated with a VCS account.",
             "in": "path",
             "required": true,
             "type": "string"
@@ -1147,15 +1350,48 @@
         "parameters": [
           {
             "name": "acctName",
+            "description": "account name to associate ssh key with",
             "in": "path",
             "required": true,
             "type": "string"
           },
           {
             "name": "identifier",
+            "description": "identifier is the unique identifier for when an ssh key is not associated with a VCS account.",
             "in": "path",
             "required": true,
             "type": "string"
+          },
+          {
+            "name": "privateKey",
+            "description": "the contents of the private key.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "byte"
+          },
+          {
+            "name": "subType",
+            "description": "There is only one subType taht is valid for SSHKeyWrapper, and it is SSHKEY.\n\n - BITBUCKET: / VCS ///\n - NEXUS: / REPO ///\n - KUBECONF: / K8S ///\n - SSHKEY: / SSH ///\n - SLACK: / NOTIFY ///\n - DEVPROFILE: / APPLE ///\n - ENV: / GENERIC ///",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "NIL_SCT",
+              "BITBUCKET",
+              "GITHUB",
+              "NEXUS",
+              "MAVEN",
+              "DOCKER",
+              "MINIO",
+              "KUBECONF",
+              "SSHKEY",
+              "SLACK",
+              "DEVPROFILE",
+              "ENV",
+              "HELM_REPO"
+            ],
+            "default": "NIL_SCT"
           }
         ],
         "tags": [
@@ -1178,12 +1414,14 @@
         "parameters": [
           {
             "name": "acctName",
+            "description": "account name to associate ssh key with",
             "in": "path",
             "required": true,
             "type": "string"
           },
           {
             "name": "identifier",
+            "description": "identifier is the unique identifier for when an ssh key is not associated with a VCS account.",
             "in": "path",
             "required": true,
             "type": "string"
@@ -1265,12 +1503,14 @@
         "parameters": [
           {
             "name": "acctName",
+            "description": "@inject_tag: yaml:\"acctName\"\nacctName is the account to associate the VCSCred with. Must be the account name of the owner of the repository they wish to track (ie level11consulting)",
             "in": "path",
             "required": true,
             "type": "string"
           },
           {
             "name": "identifier",
+            "description": "identifier is the name the user calls teh credential set",
             "in": "path",
             "required": true,
             "type": "string"
@@ -1347,12 +1587,14 @@
         "parameters": [
           {
             "name": "acctName",
+            "description": "@inject_tag: yaml:\"acctName\"\nacctName is the account to associate the VCSCred with. Must be the account name of the owner of the repository they wish to track (ie level11consulting)",
             "in": "path",
             "required": true,
             "type": "string"
           },
           {
             "name": "identifier",
+            "description": "identifier is the name the user calls teh credential set",
             "in": "path",
             "required": true,
             "type": "string"
@@ -1388,12 +1630,14 @@
         "parameters": [
           {
             "name": "acctName",
+            "description": "account name to associate ssh key with",
             "in": "path",
             "required": true,
             "type": "string"
           },
           {
             "name": "identifier",
+            "description": "identifier is the unique identifier for when an ssh key is not associated with a VCS account.",
             "in": "path",
             "required": true,
             "type": "string"
@@ -1508,15 +1752,39 @@
         "parameters": [
           {
             "name": "account",
+            "description": "account is the VCS account",
             "in": "path",
             "required": true,
             "type": "string"
           },
           {
             "name": "repo",
+            "description": "repo is the VCS repository name",
             "in": "path",
             "required": true,
             "type": "string"
+          },
+          {
+            "name": "cron",
+            "description": "cron is the cron string that will determine how often a check for changes should occur.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "branches",
+            "description": "branches tells ocelot which branches should be checked for changes.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "lastCronTime",
+            "description": "internal use only.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
           }
         ],
         "tags": [
@@ -1597,12 +1865,14 @@
         "parameters": [
           {
             "name": "account",
+            "description": "account is the VCS account",
             "in": "path",
             "required": true,
             "type": "string"
           },
           {
             "name": "repo",
+            "description": "repo is the VCS repository",
             "in": "path",
             "required": true,
             "type": "string"
@@ -1682,6 +1952,7 @@
         "parameters": [
           {
             "name": "hash",
+            "description": "hash is the git hash to trigger.",
             "in": "path",
             "required": true,
             "type": "string"

@@ -6,11 +6,13 @@ cd ..
 echo "building bitbucket model proto files"
 protoc --go_out=plugins=grpc:models/bitbucket/pb -I=models/bitbucket/ \
   -I$GOPATH/src \
+  -I$GOPATH/src/github.com/protocolbuffers/protobuf/src \
   models/bitbucket/*.proto
 
 echo "building slack model proto files"
 protoc --go_out=models/slack/pb -I=models/slack/ \
   -I$GOPATH/src \
+  -I$GOPATH/src/github.com/protocolbuffers/protobuf/src \
   models/slack/*.proto
 
 
@@ -26,6 +28,7 @@ protoc  --go_out=plugins=grpc:models/pb/ -I=models \
   -I$GOPATH/src \
   -I$GOPATH/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
   -I$GOPATH/src/github.com/grpc-ecosystem/grpc-gateway \
+  -I$GOPATH/src/github.com/protocolbuffers/protobuf/src \
   --grpc-gateway_out=logtostderr=true:models/pb \
   --swagger_out=logtostderr=true:models/pb \
   models/*.proto
