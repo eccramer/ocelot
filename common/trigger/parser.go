@@ -79,6 +79,9 @@ func (p *parser) scan() error {
 			if p.activeSection == nil {
 				return MustStartWithAction()
 			}
+			if len(p.activeSection.GetConditionValues()) > 0 && p.activeSection.GetLogical() == CNone {
+				return MustUseLogicalOperator()
+			}
 			// make sure it can't be split any further
 			if containsConditionalSymbol(text) {
 				values, aor, err := splitConditionals(text)
@@ -103,6 +106,10 @@ func (p *parser) scan() error {
 	}
 	p.directive.Conditions = append(p.directive.Conditions, p.activeSection)
 	return nil
+}
+
+func MustUseLogicalOperator() *ErrNotSupported {
+	return NotSupported("Values for condition must be separated by || or && to determine how to create the full condition.")
 }
 
 func MustStartWithAction() *ErrNotSupported {
