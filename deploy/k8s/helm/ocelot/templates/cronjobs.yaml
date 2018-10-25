@@ -1,0 +1,131 @@
+{{- if .Values.backups.consul.enabled -}}
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: consul-backup
+  labels:
+    app: {{ template "ocelot.name" . }}
+    chart: {{ template "ocelot.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  schedule: "{{.Values.backups.consul.cronSchedule}}"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: consul-backup
+            image: minio/mc:{{ .Values.backups.consul.mcTag }}
+            env: 
+              - name: AWS_CLIENT_ID
+                valueFrom:
+                  secretKeyRef:
+                    name: "{{.Values.backups.aws.secretName}}"
+                    key: "{{.Values.backups.aws.clientIdSecretKey}}"
+              - name: AWS_CLIENT_SECRET
+                valueFrom:
+                  secretKeyRef:
+                    name: "{{.Values.backups.aws.secretName}}"
+                    key: "{{.Values.backups.aws.clientKeySecretKey}}"
+              - name: S3_BACKUPS_FOLDER
+                value: "{{.Values.backups.aws.backupsFolder}}"
+            command: ["/bin/sh", "-c"]
+            args:
+            - >-
+              mc config host add s3 https://s3.amazonaws.com $AWS_CLIENT_ID $AWS_CLIENT_SECRET --api S3v4 && 
+              wget https://releases.hashicorp.com/consul/{{.Values.backups.consul.version}}/consul_{{.Values.backups.consul.version}}_linux_amd64.zip && 
+              unzip consul_{{.Values.backups.consul.version}}_linux_amd64.zip -d /bin && 
+              consul snapshot save -http-addr={{.Values.backups.consul.consulAddr}} backup.snap && 
+              mc cp s3/$S3_BACKUPS_FOLDER/backup.snap s3/$S3_BACKUPS_FOLDER/backup_previous.snap && 
+              mc cp backup.snap s3/$S3_BACKUPS_FOLDER
+          restartPolicy: Never
+{{ end }}
+{{- if .Values.backups.postgres.enabled -}}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-dump-script
+  labels:
+    app: {{ template "ocelot.name" . }}
+    chart: {{ template "ocelot.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+data:
+  postgres-dump.sh: |
+    #!/usr/bin/env bash
+    apt update && apt install -y wget 
+    wget -P /bin https://dl.minio.io/client/mc/release/linux-amd64/mc && chmod +x /bin/mc 
+    mc config host add s3 https://s3.amazonaws.com $AWS_CLIENT_ID $AWS_CLIENT_SECRET --api S3v4 &
+    echo "dumping database" 
+    pg_dump --create {{.Values.backups.postgres.dbName}} --file postgres.dump 
+    echo "dumped database" 
+    ls -lh postgres.dump 
+    echo "copying to s3" 
+    old_file=$(mc ls s3/$S3_BACKUPS_FOLDER/postgres.dump) || true
+    if [[ $old_file != "" ]]; then
+      echo "moving old postgres.dump to postgres_previous.dump"
+      mc cp s3/$S3_BACKUPS_FOLDER/postgres.dump s3/$S3_BACKUPS_FOLDER/postgres_previous.dump
+    fi
+    mc cp postgres.dump s3/$S3_BACKUPS_FOLDER  
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: postgresql-backup
+  labels:
+    app: {{ template "ocelot.name" . }}
+    chart: {{ template "ocelot.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  schedule: "{{.Values.backups.postgres.cronSchedule}}"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          volumes:
+            - name: postgres-script
+              configMap: 
+                name: postgres-dump-script
+                items:
+                  - key: postgres-dump.sh
+                    path: postgres-dump.sh
+                    mode: 0755
+          containers:
+          - name: postgresql-backup
+            image: postgres:latest
+            volumeMounts:
+              - name: postgres-script
+                mountPath: /etc/script
+            env: 
+              - name: AWS_CLIENT_ID
+                valueFrom:
+                  secretKeyRef:
+                    name: "{{.Values.backups.aws.secretName}}"
+                    key: "{{.Values.backups.aws.clientIdSecretKey}}"
+              - name: AWS_CLIENT_SECRET
+                valueFrom:
+                  secretKeyRef:
+                    name: "{{.Values.backups.aws.secretName}}"
+                    key: "{{.Values.backups.aws.clientKeySecretKey}}"
+              - name: S3_BACKUPS_FOLDER
+                value: "{{.Values.backups.aws.backupsFolder}}"
+              - name: PGPASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: "{{.Values.backups.postgres.passwordSecret}}"
+                    key: "{{.Values.backups.postgres.passwordKey}}"
+              - name: PGHOST
+                value: "{{.Values.backups.postgres.host}}"
+              - name: PGUSER
+                value: "{{.Values.backups.postgres.user}}"
+              - name: PGPORT
+                value: "{{.Values.backups.postgres.port}}"
+            command: ["/bin/sh", "-c"]
+            args:
+            - "/etc/script/postgres-dump.sh"
+          restartPolicy: Never
+{{- end }}
