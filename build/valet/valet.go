@@ -76,6 +76,7 @@ func (v *Valet) StoreInterrupt(typ Interrupt) {
 	}
 
 	for _, hrt := range hrts {
+		log.Log().WithField("hash", hrt.Hash).Info("storing interrupt!")
 		duration := time.Now().Sub(hrt.StageStart).Seconds()
 		detail := &models.StageResult{
 			BuildId:       hrt.BuildId,
@@ -200,8 +201,11 @@ func (v *Valet) CallDoneForEverything() {
 func (v *Valet) SignalRecvDed() {
 	log.Log().Info("received interrupt, cleaning up after myself...")
 	v.StoreInterrupt(Signal)
+	log.Log().Info("stored an interrupt")
 	v.CallDoneForEverything()
+	log.Log().Info("called done for everything")
 	v.RemoveAllTrace()
+	log.Log().Info("removed all trace")
 	os.Exit(1)
 }
 
