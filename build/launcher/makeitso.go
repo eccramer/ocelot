@@ -10,6 +10,7 @@ import (
 	ocelog "github.com/shankj3/go-til/log"
 	"github.com/shankj3/ocelot/build"
 	"github.com/shankj3/ocelot/build/valet"
+	"github.com/shankj3/ocelot/common"
 	"github.com/shankj3/ocelot/models"
 	"github.com/shankj3/ocelot/models/pb"
 	"github.com/shankj3/ocelot/storage"
@@ -56,28 +57,30 @@ func endBuild(werkType string, start time.Time) {
 
 // watchForResults sends the *Transport object over the transport channel for stream functions to process
 func (w *launcher) WatchForResults(hash string, dbId int64) {
-	ocelog.Log().Debugf("adding hash ( %s ) & infochan to transport channel", hash)
+	common.GetLogWithBuildIdAndHash(dbId, hash).Info("adding hash and infochan to transport channel")
 	transport := &models.Transport{Hash: hash, InfoChan: w.infochan, DbId: dbId}
 	w.StreamChan <- transport
 }
 
 // MakeItSo will call appropriate builder functions
 func (w *launcher) MakeItSo(werk *pb.WerkerTask, builder build.Builder, finish, done chan int) {
+	// initialize build log with the hash and build id fields so there is some traceability in the logs to which build occured
+	buildLog := common.GetLogWithBuildIdAndHash(werk.Id, werk.CheckoutHash)
 	startBuild()
 	start := time.Now()
-	ocelog.Log().Debug("hash build ", werk.CheckoutHash)
+	buildLog.Debug("making it so")
 	w.BuildValet.RegisterDoneChan(werk.CheckoutHash, done)
 	defer w.BuildValet.MakeItSoDed(finish)
 	defer w.BuildValet.UnregisterDoneChan(werk.CheckoutHash)
 	defer func() {
-		ocelog.Log().Info("calling done for nsqpb")
+		buildLog.Info("calling done for nsqpb")
 		done <- 1
 		endBuild(w.WerkerType.String(), start)
 	}()
 	// set up notifications to be executed on build completion
 	defer func() {
 		if err := w.doNotifications(werk); err != nil {
-			ocelog.IncludeErrField(err).Error("build notification failed!")
+			buildLog.WithError(err).Error("build notification failed!")
 		}
 	}()
 
@@ -98,11 +101,11 @@ func (w *launcher) MakeItSo(werk *pb.WerkerTask, builder build.Builder, finish, 
 	// at the end of the build, close out any build-length connections associated with build
 	defer func() {
 		if err := builder.Close(); err != nil {
-			ocelog.IncludeErrField(err).Error("unable to close builder connections cleanly")
+			buildLog.WithError(err).Error("unable to close builder connections cleanly")
 		}
 	}()
 	if result.Status == pb.StageResultVal_FAIL {
-		ocelog.Log().Error("Failed to initialize, error: " + result.Error)
+		buildLog.Error("Failed to initialize, error: " + result.Error)
 		handleFailure(result, w.Store, "INIT", 0, werk.Id)
 		return
 	}
@@ -111,7 +114,7 @@ func (w *launcher) MakeItSo(werk *pb.WerkerTask, builder build.Builder, finish, 
 	// lifetime of the container, so just add them now
 	w.addGlobalEnvVars(werk, builder)
 	defer func() {
-		ocelog.Log().Info("closing infochan for ", werk.Id)
+		buildLog.Info("closing infochan")
 		close(w.infochan)
 	}()
 
@@ -133,7 +136,7 @@ func (w *launcher) MakeItSo(werk *pb.WerkerTask, builder build.Builder, finish, 
 	// do setup stage
 	setupResult, dockerUUid := builder.Setup(ctx, w.infochan, dockerIdChan, werk, w.RemoteConf, w.ServicePort)
 	defer w.BuildValet.Cleanup(ctx, dockerUUid, w.infochan)
-	ocelog.Log().Info("finished setup")
+	buildLog.Info("finished setup")
 	setupDura := time.Now().Sub(setupStart)
 
 	if err := storeStageToDb(w.Store, werk.Id, setupResult, setupStart, setupDura.Seconds()); err != nil {

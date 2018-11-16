@@ -4,7 +4,10 @@ import (
 	"encoding/base64"
 	"strings"
 
+	"github.com/shankj3/go-til/log"
 	"github.com/shankj3/ocelot/models/pb"
+	"github.com/sirupsen/logrus"
+
 )
 
 func NCErr(msg string) *NoCreds {
@@ -41,4 +44,17 @@ func BuildScriptsContainString(wc *pb.BuildConfig, desiredString string) bool {
 		}
 	}
 	return false
+}
+
+
+func GetLogWithHash(hash string) *logrus.Entry {
+	return log.Log().WithField("gitHash", hash)
+}
+
+func GetLogWithBuildId(buildId int64) *logrus.Entry {
+	return log.Log().WithField("buildId", buildId)
+}
+
+func GetLogWithBuildIdAndHash(buildId int64, hash string) *logrus.Entry {
+	return log.Log().WithField("buildId", buildId).WithField("gitHash", hash)
 }
