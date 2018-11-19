@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/shankj3/go-til/consul"
 	ocelog "github.com/shankj3/go-til/log"
 	"github.com/shankj3/ocelot/common"
@@ -18,6 +19,14 @@ type HashRuntime struct {
 	CurrentStage string
 	Hash         string
 	StageStart   time.Time
+}
+
+// temporary holder for runtime
+type werkerRuntime struct {
+	ip string
+	grpcPort string
+	servicePort string
+	tags []string
 }
 
 //GetBuildRuntime will return BuildRuntimeInfo about matching partial git hashes.
@@ -35,33 +44,37 @@ func GetBuildRuntime(consulete consul.Consuletty, gitHash string) (map[string]*p
 	for _, pair := range pairs {
 		fullHash := common.ParseBuildMapPath(pair.Key)
 		werkerId := string(pair.Value)
-		locPairs, err := consulete.GetKeyValues(common.MakeWerkerLocPath(werkerId))
+		brtInfo, err := GetRuntimeFromWerkerId(consulete, werkerId)
 		if err != nil {
-			// todo: wrap these errors so we know where they came from / at what action
-			return nil, err
+			return nil, errors.Wrap(err, "unable to get runtime info for " + werkerId)
 		}
-		for _, pair := range locPairs {
-			key := pair.Key[strings.LastIndex(pair.Key, "/")+1:]
-			_, ok := rt[fullHash]
-			if !ok {
-				rt[fullHash] = &pb.BuildRuntimeInfo{
-					Hash: fullHash,
-				}
-			}
-
-			switch key {
-			case "werker_ip":
-				rt[fullHash].Ip = string(pair.Value)
-			case "werker_grpc_port":
-				rt[fullHash].GrpcPort = string(pair.Value)
-			case "werker_ws_port":
-				// don't use this right now
-				rt[fullHash].WsPort = string(pair.Value)
-			}
-		}
+		brtInfo.Hash = fullHash
+		rt[fullHash] = brtInfo
 	}
 
 	return rt, nil
+}
+
+func GetRuntimeFromWerkerId(consulete consul.Consuletty, werkerId string) (*pb.BuildRuntimeInfo, error) {
+	rtInfo := &pb.BuildRuntimeInfo{}
+	locPairs, err := consulete.GetKeyValues(common.MakeWerkerLocPath(werkerId))
+	if err != nil {
+		// todo: wrap these errors so we know where they came from / at what action
+		return nil, err
+	}
+	for _, pair := range locPairs {
+		key := pair.Key[strings.LastIndex(pair.Key, "/")+1:]
+		switch key {
+		case "werker_ip":
+			rtInfo.Ip = string(pair.Value)
+		case "werker_grpc_port":
+			rtInfo.GrpcPort = string(pair.Value)
+		case "werker_ws_port":
+			// don't use this right now
+			rtInfo.WsPort = string(pair.Value)
+		}
+	}
+	return rtInfo, nil
 }
 
 // CheckIfBuildDone will check in consul to make sure there is nothing in runtime configuration anymore,
@@ -168,6 +181,42 @@ func GetDockerUuidsByWerkerId(consulete consul.Consuletty, werkerId string) (uui
 	}
 	return
 }
+
+func GetWerkerRuntimesFromConsul(consulete consul.Consuletty) (runtimes []*pb.WerkerRuntime, err error) {
+	locPath := common.MakeWerkerLocPath("")
+	pairs, err := consulete.GetKeyValues(locPath)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to get werker runtimes")
+	}
+	var runtime *pb.WerkerRuntime
+	for ind, pair := range pairs {
+		importantPath := strings.Replace(pair.Key, locPath, "", 1)
+		split := strings.Split(importantPath, "/")
+		if len(split) > 2 {
+			return nil, errors.Errorf("unexpected path parameters, full: %s, stripped: %s, split: %s", pair.Key, importantPath, strings.Join(split, "|"))
+		}
+		uuid, configKey, configValue := split[0], split[1], string(pair.Value)
+		if ind == 0 {
+			runtime = &pb.WerkerRuntime{Uuid: uuid}
+		}
+		if runtime.Uuid != uuid {
+			runtimes = append(runtimes, runtime)
+			runtime = &pb.WerkerRuntime{Uuid: uuid}
+		}
+		switch configKey {
+		case "werker_ip":
+			runtime.Ip = configValue
+		case "werker_grpc_port":
+			runtime.GrpcPort = configValue
+		case "werker_ws_port":
+			runtime.WsPort = configValue
+		case "tags":
+			runtime.Tags = strings.Split(configValue, ",")
+		}
+	}
+	return
+}
+
 
 func convertArrayToInt(array []byte) (int64, error) {
 	integ, err := strconv.Atoi(string(array))

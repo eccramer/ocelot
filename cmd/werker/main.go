@@ -88,7 +88,7 @@ func main() {
 		ocelog.IncludeErrField(err).Fatal("COULD NOT GET OCELOT STORAGE! BAILING!")
 	}
 	consulet := conf.RemoteConfig.GetConsul()
-	uuid, err := valet.Register(consulet, conf.RegisterIP, conf.GrpcPort, conf.ServicePort, conf.tags)
+	uuid, err := valet.Register(consulet, conf.RegisterIP, conf.GrpcPort, conf.ServicePort, conf.Tags)
 	if err != nil {
 		ocelog.IncludeErrField(err).Fatal("unable to register werker with consul, this is vital. BAILING!")
 	}
@@ -103,7 +103,7 @@ func main() {
 	}()
 	// start protoConsumers
 	var protoConsumers []*nsqpb.ProtoConsume
-	supportedTopics := build.GetTopics(conf.tags)
+	supportedTopics := build.GetTopics(conf.Tags)
 	ocelog.Log().Debug("topics!", supportedTopics)
 
 	for _, topic := range supportedTopics {

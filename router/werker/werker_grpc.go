@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/shankj3/go-til/log"
 	rt "github.com/shankj3/ocelot/build"
 	"github.com/shankj3/ocelot/build/cleaner"
@@ -66,6 +67,10 @@ func (w *WerkerServer) KillHash(request *pb.Request, stream pb.Build_KillHashSer
 		return nil
 	}
 	return status.Error(codes.NotFound, fmt.Sprintf("No active build was found for %s", request.Hash))
+}
+
+func (w *WerkerServer) GetWerkerRuntime(context.Context, *empty.Empty) (*pb.WerkerRuntime, error) {
+	return &pb.WerkerRuntime{Uuid: w.Uuid.String(), WerkerType: w.WerkerType.String(), GrpcPort: w.GrpcPort, WsPort: w.ServicePort, Ip: w.RegisterIP}, nil
 }
 
 func NewWerkerServer(werkerCtx *WerkerContext) pb.BuildServer {

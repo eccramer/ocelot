@@ -4,6 +4,7 @@ option go_package = "pb";
 package models;
 
 import "protoc-gen-swagger/options/annotations.proto";
+import "google/protobuf/empty.proto";
 import "google/api/annotations.proto";
 
 option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
@@ -44,6 +45,8 @@ service Build {
         tags: "build"
         };
     }
+
+    rpc GetWerkerRuntime (google.protobuf.Empty) returns (WerkerRuntime) {}
 }
 
 message Request {
@@ -52,4 +55,13 @@ message Request {
 
 message Response {
     string outputLine = 1;
+}
+
+message WerkerRuntime {
+    string uuid = 1;
+    string werkerType = 2;
+    string grpcPort = 3;
+    string wsPort = 4;
+    string ip = 6;
+    repeated string tags = 5;
 }

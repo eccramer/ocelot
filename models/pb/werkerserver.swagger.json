@@ -77,6 +77,32 @@
           "type": "string"
         }
       }
+    },
+    "modelsWerkerRuntime": {
+      "type": "object",
+      "properties": {
+        "uuid": {
+          "type": "string"
+        },
+        "werkerType": {
+          "type": "string"
+        },
+        "grpcPort": {
+          "type": "string"
+        },
+        "wsPort": {
+          "type": "string"
+        },
+        "ip": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
     }
   }
 }
