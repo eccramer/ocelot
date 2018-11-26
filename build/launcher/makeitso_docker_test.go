@@ -113,7 +113,7 @@ func TestLauncher_doIntegrations(t *testing.T) {
 	launch.integrations = getIntegrationList()
 	_ = dckr.Exec(ctx, "Install bash", "", []string{}, []string{"/bin/sh", "-c", "apk -U --no-cache add bash"}, launch.infochan) // For the k8s test
 	result := launch.doIntegrations(ctx, &pb.WerkerTask{BuildConf: &pb.BuildConfig{BuildTool: "maven"}}, dckr, baseStage)
-	if result.Status == pb.StageResultVal_FAIL {
+	if result.Status == pb.BuildStatus_FAILED {
 		t.Log(result.Messages)
 		t.Error(result.Error)
 	}
@@ -146,7 +146,7 @@ func TestLauncher_doIntegrations(t *testing.T) {
 	// check that docker config.json was properly rendered
 	expectedDockerConfig := []byte(`{"auths":{"http://docker.hub.io":{"auth":"dW5hbWU6eHl6enp6"},"http://urls.go":{"auth":"ZG9ja2VydXNlcjpkb2NrZXJwdw=="}},"HttpHeaders":{"User-Agent":"Docker-Client/17.12.0-ce (linux)"}}`)
 	res := dckr.Exec(ctx, "test docker config", "", []string{}, []string{"/bin/sh", "-c", "cat ~/.docker/config.json"}, launch.infochan)
-	if res.Status == pb.StageResultVal_FAIL {
+	if res.Status == pb.BuildStatus_FAILED {
 		t.Log(res.Messages)
 		t.Error(result.Error)
 	}
@@ -163,7 +163,7 @@ func TestLauncher_doIntegrations(t *testing.T) {
 	kubeLogOne := make(chan []byte, 1000)
 	res = dckr.Exec(ctx, "test k8s config, identifier 'THERECANONLYBEONE'", "", []string{}, []string{"/bin/sh", "-c", "cat ~/.kube/config"}, kubeLogOne)
 	close(kubeLogOne)
-	if res.Status == pb.StageResultVal_FAIL {
+	if res.Status == pb.BuildStatus_FAILED {
 		t.Log(res.Messages)
 		t.Error(result.Error)
 	}
@@ -181,7 +181,7 @@ func TestLauncher_doIntegrations(t *testing.T) {
 	kubeLogTwo := make(chan []byte, 1000)
 	res = dckr.Exec(ctx, "test k8s config, identifier 'ricky'", "", []string{}, []string{"/bin/sh", "-c", "cat ~/.kube/ricky"}, kubeLogTwo)
 	close(kubeLogTwo)
-	if res.Status == pb.StageResultVal_FAIL {
+	if res.Status == pb.BuildStatus_FAILED {
 		t.Log(res.Messages)
 		t.Error(result.Error)
 	}
@@ -198,7 +198,7 @@ func TestLauncher_doIntegrations(t *testing.T) {
 	kubeLogThree := make(chan []byte, 1000)
 	res = dckr.Exec(ctx, "test k8s config, identifier 'HankHill'", "", []string{}, []string{"/bin/sh", "-c", "cat ~/.kube/HankHill"}, kubeLogThree)
 	close(kubeLogThree)
-	if res.Status == pb.StageResultVal_FAIL {
+	if res.Status == pb.BuildStatus_FAILED {
 		t.Log(res.Messages)
 		t.Error(result.Error)
 	}
@@ -257,7 +257,7 @@ func TestDocker_RepoIntegrationSetup(t *testing.T) {
 	// try to do a docker pull on private repo without creds written. this should fail.
 	out := make(chan []byte, 10000)
 	result := dckr.Exec(ctx, su.GetStage(), su.GetStageLabel(), []string{}, pull, out)
-	if result.Status != pb.StageResultVal_FAIL {
+	if result.Status != pb.BuildStatus_FAILED {
 		data := <-out
 		t.Error("pull from metaverse should fail if there are no creds to authenticate with. stdout: ", data)
 	}
@@ -278,7 +278,7 @@ func TestDocker_RepoIntegrationSetup(t *testing.T) {
 		return
 	}
 	res := dckr.ExecuteIntegration(ctx, &pb.Stage{Env: []string{}, Name: "docker login", Script: dcker.MakeBashable(intstring)}, build.InitStageUtil("docker login"), logout)
-	if res.Status == pb.StageResultVal_FAIL {
+	if res.Status == pb.BuildStatus_FAILED {
 		data := <-logout
 		t.Error("stage failed! logout data: ", string(data))
 	}
@@ -287,7 +287,7 @@ func TestDocker_RepoIntegrationSetup(t *testing.T) {
 	logout = make(chan []byte, 100000)
 	res = dckr.Exec(ctx, su.GetStage(), su.GetStageLabel(), []string{}, pull, logout)
 	outByte := <-logout
-	if res.Status == pb.StageResultVal_FAIL {
+	if res.Status == pb.BuildStatus_FAILED {
 		t.Error("could not pull from metaverse docker! out: ", string(outByte))
 	}
 	muxi := mux.NewRouter()
@@ -300,20 +300,20 @@ func TestDocker_RepoIntegrationSetup(t *testing.T) {
 
 	//result = docker.IntegrationSetup(ctx, func(config cred.CVRemoteConfig, store storage.CredTable, acctName string)(string, error) {return "8888", nil}, docker.DownloadKubectl, "kubectl download", testRemoteConfig, acctName, su, []string{}, pg, logout)
 	//outBytes := <-logout
-	//if result.Status == pb.StageResultVal_FAIL {
+	//if result.Status == pb.BuildStatus_FAILED {
 	//	t.Error("couldn't download kubectl! oh nuuuuuu! ", string(outBytes))
 	//}
 	//checkKube := []string{"/bin/sh", "-c", "command -v kubectl"}
 	//outd := make(chan []byte, 10000)
 	//result = docker.Exec(ctx, su.GetStage(), su.GetStageLabel(), []string{}, checkKube, outd)
 	//outb := <- outd
-	//if result.Status == pb.StageResultVal_FAIL {
+	//if result.Status == pb.BuildStatus_FAILED {
 	//	t.Error("kubectl not found! fail! ", string(outb))
 	//}
 	//
 	//result = docker.IntegrationSetup(ctx, func(config cred.CVRemoteConfig, store storage.CredTable,  acctName string)(string, error) {return "dGhpc2lzbXlrdWJlY29uZm9oaGhoYmJiYWFhYWJiYmJ5eXl5Cg==", nil}, docker.InstallKubeconfig, "kubeconfig install", testRemoteConfig, acctName, su, []string{}, pg, logout)
 	//outBytes = <-logout
-	//if result.Status == pb.StageResultVal_FAIL {
+	//if result.Status == pb.BuildStatus_FAILED {
 	//	t.Error("couldn't add kubeconfig! oh no! ", string(outBytes))
 	//}
 	//t.Log(result.Status)
@@ -322,7 +322,7 @@ func TestDocker_RepoIntegrationSetup(t *testing.T) {
 	//outx := make(chan []byte, 10000)
 	//result = docker.Exec(ctx, su.GetStage(), su.GetStageLabel(), []string{}, checkKubeConf, outx)
 	//outy := <- outx
-	//if result.Status == pb.StageResultVal_FAIL {
+	//if result.Status == pb.BuildStatus_FAILED {
 	//	t.Error("kubeconf when wrong! fail! ", string(outy))
 	//}
 	//if string(outy) != "TESTING | thisismykubeconfohhhhbbbaaaabbbbyyyy" {

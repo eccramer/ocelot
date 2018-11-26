@@ -29,13 +29,13 @@ func TestThrowStatusWebhook(t *testing.T) {
 				Error:       "all good here",
 				StageStatus: "prebuild",
 				Messages:    []string{"YOU PASSED YOU RAMBUNCTIOUS FELLA"},
-				Status:      int32(pb.StageResultVal_PASS),
+				Status:      int32(pb.BuildStatus_PASSED),
 			},
 			{
 				Error:       "this has failed!",
 				StageStatus: "buildmeeee",
 				Messages:    []string{"it failed because you are a failure " + models.FAILED},
-				Status:      int32(pb.StageResultVal_FAIL),
+				Status:      int32(pb.BuildStatus_FAILED),
 			},
 		},
 	}
@@ -95,13 +95,13 @@ func TestThrowStatusWebhook_pass(t *testing.T) {
 				Error:       "all good here",
 				StageStatus: "prebuild",
 				Messages:    []string{"YOU PASSED YOU RAMBUNCTIOUS FELLA"},
-				Status:      int32(pb.StageResultVal_PASS),
+				Status:      int32(pb.BuildStatus_PASSED),
 			},
 			{
 				Error:       "this has failed!",
 				StageStatus: "buildmeeee",
 				Messages:    []string{"it failed because you are a failure " + models.FAILED},
-				Status:      int32(pb.StageResultVal_PASS),
+				Status:      int32(pb.BuildStatus_PASSED),
 			},
 		},
 	}
@@ -154,13 +154,13 @@ func TestThrowStatusWebhook_handleError(t *testing.T) {
 				Error:       "all good here",
 				StageStatus: "prebuild",
 				Messages:    []string{"YOU PASSED YOU RAMBUNCTIOUS FELLA"},
-				Status:      int32(pb.StageResultVal_PASS),
+				Status:      int32(pb.BuildStatus_PASSED),
 			},
 			{
 				Error:       "this has failed!",
 				StageStatus: "buildmeeee",
 				Messages:    []string{"it failed because you are a failure " + models.FAILED},
-				Status:      int32(pb.StageResultVal_PASS),
+				Status:      int32(pb.BuildStatus_PASSED),
 			},
 		},
 	}

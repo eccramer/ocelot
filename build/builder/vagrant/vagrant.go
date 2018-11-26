@@ -58,10 +58,10 @@ func (v *Vagrant) execute(ctx context.Context, stage *build.StageUtil, env []str
 	// with os/exec, if the cmd returns non-zero it returns an error so we don't have to do any explicit checking
 	if err != nil {
 		errMsg := fmt.Sprintf("failed to complete %s stage %s", stage.Stage, models.FAILED)
-		return &pb.Result{Stage: stage.Stage, Status: pb.StageResultVal_FAIL, Error: err.Error(), Messages: []string{errMsg}}
+		return &pb.Result{Stage: stage.Stage, Status: pb.BuildStatus_FAILED, Error: err.Error(), Messages: []string{errMsg}}
 	}
 	success := []string{fmt.Sprintf("completed %s stage %s", stage.Stage, models.CHECKMARK)}
-	return &pb.Result{Stage: stage.Stage, Status: pb.StageResultVal_PASS, Error: "", Messages: success}
+	return &pb.Result{Stage: stage.Stage, Status: pb.BuildStatus_PASSED, Error: "", Messages: success}
 }
 
 func (v *Vagrant) SetGlobalEnv(envs []string) {
@@ -77,14 +77,14 @@ func (v *Vagrant) Setup(ctx context.Context, logout chan []byte, dockerId chan s
 	if err != nil {
 		return &pb.Result{
 			Stage:    stage.GetStage(),
-			Status:   pb.StageResultVal_FAIL,
+			Status:   pb.BuildStatus_FAILED,
 			Error:    err.Error(),
 			Messages: append(setupMessages, "vagrant up command failed "+models.FAILED),
 		}, v.getVagrantDirec(werk.CheckoutHash)
 	}
 	return &pb.Result{
 		Stage:    stage.GetStage(),
-		Status:   pb.StageResultVal_PASS,
+		Status:   pb.BuildStatus_PASSED,
 		Error:    "",
 		Messages: append(setupMessages, "succesfully created vm with vagrant up "+models.CHECKMARK),
 	}, v.getVagrantDirec(werk.CheckoutHash)

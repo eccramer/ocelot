@@ -64,7 +64,7 @@ func SetupSSHBuilderNoTempl(t *testing.T, sshPort int, testHash string, prefixdi
 	close(logt)
 	<-done
 	//defer ssh.Close()
-	if res.Status != pb.StageResultVal_PASS {
+	if res.Status != pb.BuildStatus_PASSED {
 		t.Log(out)
 		cleanup()
 		t.Fatal("should pass, error is: ", res.Error)

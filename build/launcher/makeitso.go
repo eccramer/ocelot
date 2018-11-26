@@ -102,7 +102,7 @@ func (w *launcher) MakeItSo(werk *pb.WerkerTask, builder build.Builder, finish, 
 			ocelog.IncludeErrField(err).Error("unable to close builder connections cleanly")
 		}
 	}()
-	if result.Status == pb.StageResultVal_FAIL {
+	if result.Status == pb.BuildStatus_FAILED {
 		ocelog.Log().Error("Failed to initialize, error: " + result.Error)
 		handleFailure(result, w.Store, "INIT", 0, werk.Id)
 		return
@@ -142,7 +142,7 @@ func (w *launcher) MakeItSo(werk *pb.WerkerTask, builder build.Builder, finish, 
 		ocelog.IncludeErrField(err).Error("couldn't store build output")
 		return
 	}
-	if setupResult.Status == pb.StageResultVal_FAIL {
+	if setupResult.Status == pb.BuildStatus_FAILED {
 		handleFailure(setupResult, w.Store, "setup", setupDura, werk.Id)
 		return
 	}

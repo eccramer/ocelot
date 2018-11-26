@@ -47,7 +47,7 @@ func getBinaryIntegList(loopbackHost, loopbackPort string) []integrations.Binary
 func (w *launcher) doIntegrations(ctx context.Context, werk *pb.WerkerTask, bldr build.Builder, baseStage *build.StageUtil) (result *pb.Result) {
 	accountName, _, err := common.GetAcctRepo(werk.FullName)
 	if err != nil {
-		result.Status = pb.StageResultVal_FAIL
+		result.Status = pb.BuildStatus_FAILED
 		result.Error = err.Error()
 		return
 	}
@@ -63,7 +63,7 @@ func (w *launcher) doIntegrations(ctx context.Context, werk *pb.WerkerTask, bldr
 		if err != nil {
 			result = handleIntegrationErr(err, integ.String(), subStage, result.Messages)
 			// if handleIntegrationError decides that this "failure" is actually OK, just continue to next integration
-			if result.Status == pb.StageResultVal_PASS {
+			if result.Status == pb.BuildStatus_PASSED {
 				integMessages = append(integMessages, result.Messages...)
 				result.Messages = []string{}
 				continue
@@ -74,7 +74,7 @@ func (w *launcher) doIntegrations(ctx context.Context, werk *pb.WerkerTask, bldr
 		if err != nil {
 			result = &pb.Result{
 				Stage:    subStage.GetStage(),
-				Status:   pb.StageResultVal_FAIL,
+				Status:   pb.BuildStatus_FAILED,
 				Error:    err.Error(),
 				Messages: integMessages,
 			}
@@ -82,7 +82,7 @@ func (w *launcher) doIntegrations(ctx context.Context, werk *pb.WerkerTask, bldr
 		}
 		stg := &pb.Stage{Env: integ.GetEnv(), Script: integ.MakeBashable(integString), Name: subStage.Stage}
 		result = bldr.ExecuteIntegration(ctx, stg, subStage, w.infochan)
-		if result.Status == pb.StageResultVal_FAIL {
+		if result.Status == pb.BuildStatus_FAILED {
 			result.Messages = append(integMessages, result.Messages...)
 			return
 		}
@@ -107,7 +107,7 @@ func (w *launcher) downloadBinaries(ctx context.Context, su *build.StageUtil, bl
 			stg := &pb.Stage{Name: subStage.Stage, Script: binaryI.GenerateDownloadBashables()}
 			result = bldr.ExecuteIntegration(ctx, stg, subStage, w.infochan)
 			integMessages = append(integMessages, result.Messages...)
-			if result.Status == pb.StageResultVal_FAIL {
+			if result.Status == pb.BuildStatus_FAILED {
 				result.Messages = integMessages
 				return
 			}
@@ -128,7 +128,7 @@ func handleIntegrationErr(err error, integrationName string, stage *build.StageU
 		ocelog.IncludeErrField(err).Error("returning failed setup because repo integration failed for: ", integrationName)
 		return &pb.Result{
 			Stage:    stage.GetStage(),
-			Status:   pb.StageResultVal_FAIL,
+			Status:   pb.BuildStatus_FAILED,
 			Error:    err.Error(),
 			Messages: append(msgs, fmt.Sprintf("integration failed for %s %s", integrationName, models.FAILED)),
 		}
@@ -136,7 +136,7 @@ func handleIntegrationErr(err error, integrationName string, stage *build.StageU
 		msgs = append(msgs, fmt.Sprintf("no integration data for %s %s", integrationName, models.CHECKMARK))
 		return &pb.Result{
 			Stage:    stage.GetStage(),
-			Status:   pb.StageResultVal_PASS,
+			Status:   pb.BuildStatus_PASSED,
 			Error:    "",
 			Messages: msgs,
 		}

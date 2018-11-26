@@ -37,13 +37,13 @@ func Test_downloadCodebase(t *testing.T) {
 	for i := range logout {
 		output += string(i) + "\n"
 	}
-	if result.Status != pb.StageResultVal_PASS {
+	if result.Status != pb.BuildStatus_PASSED {
 		t.Error("should have passed, output is " + output)
 	}
 	bilder.failExecuteIntegration = true
 	logout = make(chan []byte, 100)
 	result = downloadCodebase(ctx, task, bilder, stage, logout)
-	if result.Status != pb.StageResultVal_FAIL {
+	if result.Status != pb.BuildStatus_FAILED {
 		t.Error("builder returned a failure, this should also fail.")
 	}
 }
@@ -129,7 +129,7 @@ func TestLauncher_handleEnvSecrets(t *testing.T) {
 		Basher:    getTestBasher(t),
 	}
 	res := lnchr.handleEnvSecrets(context.Background(), bilder, "oooooops", build.InitStageUtil("PREFLIGHT"))
-	if res.Status == pb.StageResultVal_FAIL {
+	if res.Status == pb.BuildStatus_FAILED {
 		t.Error(res.Error)
 	}
 	expectedEnvs := []string{

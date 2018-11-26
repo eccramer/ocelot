@@ -44,7 +44,7 @@ func (e *Exec) AddGlobalEnvs(envs []string) {
 func (e *Exec) Init(ctx context.Context, hash string, logout chan []byte) *pb.Result {
 	res := &pb.Result{
 		Stage:    "INIT",
-		Status:   pb.StageResultVal_PASS,
+		Status:   pb.BuildStatus_PASSED,
 		Messages: []string{"Initializing Exec builder... " + models.CHECKMARK},
 	}
 	return res
@@ -58,14 +58,14 @@ func (e *Exec) Setup(ctx context.Context, logout chan []byte, dockerIdChan chan 
 	su := build.InitStageUtil("setup")
 	cmd := e.SleeplessDownloadTemplateFiles(e.RegisterIP, e.ServicePort)
 	downloadTemplates := e.execute(ctx, su, []string{}, []string{cmd}, logout)
-	if downloadTemplates.Status == pb.StageResultVal_FAIL {
+	if downloadTemplates.Status == pb.BuildStatus_FAILED {
 		log.Log().Error("An error occured while trying to download templates ", downloadTemplates.Error)
 		setupMessages = append(setupMessages, "failed to download templates "+models.FAILED)
 		downloadTemplates.Messages = setupMessages
 		return downloadTemplates, werk.CheckoutHash
 	}
 	setupMessages = append(setupMessages, "Set up via Exec "+models.CHECKMARK)
-	return &pb.Result{Stage: su.GetStage(), Status: pb.StageResultVal_PASS, Error: "", Messages: setupMessages}, werk.CheckoutHash
+	return &pb.Result{Stage: su.GetStage(), Status: pb.BuildStatus_PASSED, Error: "", Messages: setupMessages}, werk.CheckoutHash
 }
 
 func (e *Exec) Execute(ctx context.Context, actions *pb.Stage, logout chan []byte, commitHash string) *pb.Result {
@@ -132,12 +132,12 @@ func (e *Exec) execute(ctx context.Context, stage *build.StageUtil, env []string
 	if err != nil {
 		return &pb.Result{
 			Stage:    stage.Stage,
-			Status:   pb.StageResultVal_FAIL,
+			Status:   pb.BuildStatus_FAILED,
 			Error:    err.Error(),
 			Messages: messages,
 		}
 	}
-	return &pb.Result{Stage: stage.Stage, Status: pb.StageResultVal_PASS, Error: "", Messages: append(messages, fmt.Sprintf("completed %s stage %s", stage.Stage, models.CHECKMARK))}
+	return &pb.Result{Stage: stage.Stage, Status: pb.BuildStatus_PASSED, Error: "", Messages: append(messages, fmt.Sprintf("completed %s stage %s", stage.Stage, models.CHECKMARK))}
 }
 
 func (e *Exec) Close() error {

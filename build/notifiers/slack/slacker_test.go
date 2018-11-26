@@ -23,13 +23,13 @@ func TestSlacker_staticstuff(t *testing.T) {
 }
 
 func Test_determineRelevancy(t *testing.T) {
-	notifyList := []pb.StageResultVal{pb.StageResultVal_PASS, pb.StageResultVal_FAIL}
+	notifyList := []pb.StageResultVal{pb.BuildStatus_PASSED, pb.BuildStatus_FAILED}
 	isWorthy := determineRelevancy(notifyList, pb.BuildStatus_PASSED)
 	if !isWorthy {
 		t.Error("should return that it is worthy")
 	}
 
-	notifyList = []pb.StageResultVal{pb.StageResultVal_FAIL}
+	notifyList = []pb.StageResultVal{pb.BuildStatus_FAILED}
 	isWorthy = determineRelevancy(notifyList, pb.BuildStatus_PASSED)
 	if isWorthy {
 		t.Error("should return that it is not worthy")
@@ -57,7 +57,7 @@ func TestSlacker_IsRelevant(t *testing.T) {
 	}
 	notify := &pb.BuildConfig{
 		Notify: &pb.Notifications{
-			Slack: &pb.Slack{Identifier: "here", On: []pb.StageResultVal{pb.StageResultVal_FAIL}},
+			Slack: &pb.Slack{Identifier: "here", On: []pb.StageResultVal{pb.BuildStatus_FAILED}},
 		},
 	}
 	if !slacker.IsRelevant(notify, pb.BuildStatus_FAILED) {
@@ -81,7 +81,7 @@ func TestSlacker_RunIntegration(t *testing.T) {
 		Slack: &pb.Slack{
 			Channel:    "@jessi-shank",
 			Identifier: "id2",
-			On:         []pb.StageResultVal{pb.StageResultVal_FAIL},
+			On:         []pb.StageResultVal{pb.BuildStatus_FAILED},
 		},
 	}
 	slacker := &Slacker{client: cli}

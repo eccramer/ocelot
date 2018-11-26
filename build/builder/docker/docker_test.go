@@ -22,7 +22,7 @@ func TestDockerBasher_InstallPackageDeps(t *testing.T) {
 	for i := range logout {
 		out += string(i) + "\n"
 	}
-	if result.Status == pb.StageResultVal_FAIL {
+	if result.Status == pb.BuildStatus_FAILED {
 		t.Log(out)
 		t.Error("couldn't download deps! oh nuuu!")
 		return
@@ -31,7 +31,7 @@ func TestDockerBasher_InstallPackageDeps(t *testing.T) {
 	logout = make(chan []byte, 10000)
 	testDeps := []string{"/bin/sh", "-c", "command -v openssl && command -v bash && command -v zip && command -v wget && command -v python"}
 	result = alpine.Exec(ctx, su.GetStage(), su.GetStageLabel(), []string{}, testDeps, logout)
-	if result.Status == pb.StageResultVal_FAIL {
+	if result.Status == pb.BuildStatus_FAILED {
 		t.Error("deps not found! oh nuuu!")
 	}
 	t.Log(result.Status)
@@ -48,7 +48,7 @@ func TestDocker_AddGlobalEnvs(t *testing.T) {
 	alpine.AddGlobalEnvs([]string{"BANANA=HAMMOCK", "SCHMORGAZ=BORDDDD", "shutyer=stooooooopid==ideas"})
 	echo := []string{"/bin/sh", "-c", "echo $BANANA $SCHMORGAZ $shutyer"}
 	result := alpine.Exec(ctx, su.GetStage(), su.GetStageLabel(), []string{}, echo, logout)
-	if result.Status == pb.StageResultVal_FAIL {
+	if result.Status == pb.BuildStatus_FAILED {
 		t.Error("this shouldn't fail.")
 	}
 	close(logout)

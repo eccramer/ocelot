@@ -38,7 +38,7 @@ func TestSSH_Initfail(t *testing.T) {
 	logout := make(chan []byte, 1000)
 	res := ssh.Init(context.Background(), "hashhash", logout)
 	close(logout)
-	if res.Status != pb.StageResultVal_FAIL {
+	if res.Status != pb.BuildStatus_FAILED {
 		t.Error("should fial, there is no ssh container up")
 		return
 	}
@@ -111,7 +111,7 @@ func testSSH_Setup(t *testing.T, ssher build.Builder, ctx context.Context, task 
 	res := ssher.Init(ctx, task.CheckoutHash, logt)
 	close(logt)
 	<-logdone
-	if res.Status != pb.StageResultVal_PASS {
+	if res.Status != pb.BuildStatus_PASSED {
 		t.Log(output)
 		t.Error("should pass, error is :" + res.Error)
 		return
@@ -145,7 +145,7 @@ func testSSH_Setup2(t *testing.T, ssher build.Builder, ctx context.Context, task
 	res := ssher.Init(ctx, task.CheckoutHash, logt)
 	close(logt)
 	<-logdone
-	if res.Status != pb.StageResultVal_PASS {
+	if res.Status != pb.BuildStatus_PASSED {
 		t.Log(res.Messages)
 		t.Log(output)
 		t.Error("should pass, error is: " + res.Error)
@@ -162,7 +162,7 @@ func testSSH_Setup2(t *testing.T, ssher build.Builder, ctx context.Context, task
 	sher := ssher.(*SSH)
 	sher.ServicePort = "8235"
 	result, _ := sher.Setup(ctx, logout, dockerId, task, nil, "")
-	if result.Status != pb.StageResultVal_FAIL {
+	if result.Status != pb.BuildStatus_FAILED {
 		t.Error("should have failed")
 	}
 	if diff := deep.Equal(result.Messages, []string{"failed to download templates " + models.FAILED}); diff != nil {
@@ -185,7 +185,7 @@ func testSSH_execute(t *testing.T, sher build.Builder, ctx context.Context) {
 	res := ssher.execute(ctx, build.InitStageUtil("SSHEXEC"), []string{"AYYY=123"}, []string{"echo 'SUPERCALLAFRAGILISTICEXPIALADOCIOUS'"}, logout)
 	close(logout)
 	<-logdone
-	if res.Status == pb.StageResultVal_FAIL {
+	if res.Status == pb.BuildStatus_FAILED {
 		t.Log(res.Error)
 		t.Log(res.Messages)
 		t.Error("test should have passed")
@@ -212,7 +212,7 @@ func testSSH_ExecuteIntegration(t *testing.T, ssher build.Builder, ctx context.C
 		Name:   "SSHEXEC",
 	}
 	res := ssher.ExecuteIntegration(ctx, stage, build.InitStageUtil(stage.Name), logout)
-	if res.Status == pb.StageResultVal_PASS {
+	if res.Status == pb.BuildStatus_PASSED {
 		t.Error("exec should not have passed, there is no banana in the echo!")
 	}
 	if diff := deep.Equal(res.Messages, []string{"failed to complete sshexec stage ✗"}); diff != nil {
@@ -225,7 +225,7 @@ func testSSH_Execute(t *testing.T, sher build.Builder, ctx context.Context, hash
 	ssher := sher.(*SSH)
 	res := ssher.execute(ctx, build.InitStageUtil("execute"), []string{}, []string{"mkdir -p /tmp/.ocelot/" + hash, fmt.Sprintf("touch /tmp/.ocelot/%s/README.md", hash)}, logout)
 	close(logout)
-	if res.Status == pb.StageResultVal_FAIL {
+	if res.Status == pb.BuildStatus_FAILED {
 		var out string
 		for i := range logout {
 			out += string(i) + "\n"
@@ -249,7 +249,7 @@ func testSSH_Execute(t *testing.T, sher build.Builder, ctx context.Context, hash
 	res = ssher.Execute(ctx, execStage, logout, hash)
 	close(logout)
 	<-logsdone
-	if res.Status == pb.StageResultVal_FAIL {
+	if res.Status == pb.BuildStatus_FAILED {
 		t.Error("exec stage should have passed")
 	}
 	expected := `TESTCD | ayyyyyy

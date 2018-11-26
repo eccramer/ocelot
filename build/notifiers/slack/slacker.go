@@ -19,12 +19,12 @@ func (s *Slacker) SubType() pb.SubCredType {
 	return pb.SubCredType_SLACK
 }
 
-func determineRelevancy(notifies []pb.StageResultVal, status pb.BuildStatus) (isWorthy bool) {
+func determineRelevancy(notifies []pb.BuildStatus, status pb.BuildStatus) (isWorthy bool) {
 	var notifyPass pb.StageResultVal
 	if status == pb.BuildStatus_FAILED {
-		notifyPass = pb.StageResultVal_FAIL
+		notifyPass = pb.BuildStatus_FAILED
 	} else {
-		notifyPass = pb.StageResultVal_PASS
+		notifyPass = pb.BuildStatus_PASSED
 	}
 	for _, notifyAcceptable := range notifies {
 		if notifyAcceptable == notifyPass {

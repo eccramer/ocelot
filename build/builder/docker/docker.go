@@ -54,7 +54,7 @@ func (d *Docker) Init(ctx context.Context, hash string, logout chan []byte) *pb.
 	//cli, err := client.NewEnvClient()
 	//d.DockerClient = cli
 	res := &pb.Result{
-		Status:   pb.StageResultVal_PASS,
+		Status:   pb.BuildStatus_PASSED,
 		Stage:    "INIT",
 		Messages: []string{"Initializing docker builder..."},
 	}
@@ -83,7 +83,7 @@ func (d *Docker) Setup(ctx context.Context, logout chan []byte, dockerIdChan cha
 		ocelog.Log().Debug("returning failed stage because could not create docker env client")
 		return &pb.Result{
 			Stage:  su.GetStage(),
-			Status: pb.StageResultVal_FAIL,
+			Status: pb.BuildStatus_FAILED,
 			Error:  err.Error(),
 		}, ""
 	}
@@ -94,7 +94,7 @@ func (d *Docker) Setup(ctx context.Context, logout chan []byte, dockerIdChan cha
 		dockerErrors.Inc()
 		return &pb.Result{
 			Stage:    su.GetStage(),
-			Status:   pb.StageResultVal_FAIL,
+			Status:   pb.BuildStatus_FAILED,
 			Error:    err.Error(),
 			Messages: setupMessages,
 		}, ""
@@ -136,7 +136,7 @@ func (d *Docker) Setup(ctx context.Context, logout chan []byte, dockerIdChan cha
 		ocelog.IncludeErrField(err).Error("returning failed because could not create container")
 		return &pb.Result{
 			Stage:    su.GetStage(),
-			Status:   pb.StageResultVal_FAIL,
+			Status:   pb.BuildStatus_FAILED,
 			Error:    err.Error(),
 			Messages: setupMessages,
 		}, ""
@@ -162,7 +162,7 @@ func (d *Docker) Setup(ctx context.Context, logout chan []byte, dockerIdChan cha
 		ocelog.IncludeErrField(err).Error("returning failed because could not start container")
 		return &pb.Result{
 			Stage:    su.GetStage(),
-			Status:   pb.StageResultVal_FAIL,
+			Status:   pb.BuildStatus_FAILED,
 			Error:    err.Error(),
 			Messages: setupMessages,
 		}, ""
@@ -182,7 +182,7 @@ func (d *Docker) Setup(ctx context.Context, logout chan []byte, dockerIdChan cha
 		ocelog.IncludeErrField(err).Error("returning failed setup because could not get logs of container")
 		return &pb.Result{
 			Stage:    su.GetStage(),
-			Status:   pb.StageResultVal_FAIL,
+			Status:   pb.BuildStatus_FAILED,
 			Error:    err.Error(),
 			Messages: setupMessages,
 		}, d.ContainerId
@@ -254,7 +254,7 @@ func (d *Docker) Execute(ctx context.Context, stage *pb.Stage, logout chan []byt
 	if len(d.ContainerId) == 0 {
 		return &pb.Result{
 			Stage:  stage.Name,
-			Status: pb.StageResultVal_FAIL,
+			Status: pb.BuildStatus_FAILED,
 			Error:  "no container exists, setup before executing",
 		}
 	}
@@ -278,7 +278,7 @@ func (d *Docker) Exec(ctx context.Context, currStage string, currStageStr string
 		dockerErrors.Inc()
 		return &pb.Result{
 			Stage:    currStage,
-			Status:   pb.StageResultVal_FAIL,
+			Status:   pb.BuildStatus_FAILED,
 			Error:    err.Error(),
 			Messages: stageMessages,
 		}
@@ -311,7 +311,7 @@ func (d *Docker) Exec(ctx context.Context, currStage string, currStageStr string
 
 		return &pb.Result{
 			Stage:    currStage,
-			Status:   pb.StageResultVal_FAIL,
+			Status:   pb.BuildStatus_FAILED,
 			Error:    errStr,
 			Messages: stageMessages,
 		}
@@ -319,7 +319,7 @@ func (d *Docker) Exec(ctx context.Context, currStage string, currStageStr string
 	stageMessages = append(stageMessages, fmt.Sprintf("completed %s stage %s", currStage, models.CHECKMARK))
 	return &pb.Result{
 		Stage:    currStage,
-		Status:   pb.StageResultVal_PASS,
+		Status:   pb.BuildStatus_PASSED,
 		Error:    "",
 		Messages: stageMessages,
 	}

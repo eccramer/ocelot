@@ -57,7 +57,7 @@ func TestExec_Setup(t *testing.T) {
 	res, id := exc.Setup(ctx, logout, idChan, task, nil, "9999")
 	close(logout)
 	defer os.RemoveAll("./test-fixtures/exec/.ocelot")
-	if res.Status == pb.StageResultVal_FAIL {
+	if res.Status == pb.BuildStatus_FAILED {
 		for i := range logout {
 			fmt.Println(string(i))
 		}
@@ -106,7 +106,7 @@ func TestExec_Setupfail(t *testing.T) {
 	for i := range logout {
 		out += string(i) + "\n"
 	}
-	if res.Status != pb.StageResultVal_FAIL {
+	if res.Status != pb.BuildStatus_FAILED {
 		t.Error("should fail as there is no web server for downloading templates")
 	}
 	if diff := deep.Equal(res.Messages, []string{"failed to download templates ✗"}); diff != nil {
@@ -151,7 +151,7 @@ func TestExec_Execute(t *testing.T) {
 	t.Log("WORKIN DIRECTORY 2!", DIREC)
 	close(logout)
 	<-logsdone
-	if res.Status == pb.StageResultVal_FAIL {
+	if res.Status == pb.BuildStatus_FAILED {
 		t.Error("should have passed, error is:" + res.Error)
 		return
 	}
@@ -218,7 +218,7 @@ func TestExec_execute(t *testing.T) {
 	close(logout)
 	<-logsdone
 	t.Log(logs)
-	if res.Status == pb.StageResultVal_FAIL {
+	if res.Status == pb.BuildStatus_FAILED {
 		t.Error("stage should not have failed, error is: " + res.Error)
 	}
 	if !strings.Contains(logs, "builder/exec/test-fixtures") {
@@ -252,7 +252,7 @@ func TestExec_executeFail(t *testing.T) {
 	close(logout)
 	<-logsdone
 	t.Log(logs)
-	if res.Status != pb.StageResultVal_FAIL {
+	if res.Status != pb.BuildStatus_FAILED {
 		t.Error("stage should have failed, error is: " + res.Error)
 	}
 }
@@ -274,7 +274,7 @@ func TestExec_SetGlobalEnv(t *testing.T) {
 	res := exc.execute(ctx, su, []string{"PRIVTEST=execute"}, []string{"echo $THINK", "echo $ONETWOTHREE", "echo $PRIVTEST"}, logout)
 	close(logout)
 	<-logsdone
-	if res.Status == pb.StageResultVal_FAIL {
+	if res.Status == pb.BuildStatus_FAILED {
 		t.Error("stage should not have failed, error is: " + res.Error)
 	}
 	expected := `GLOBALENVTESSSST | GLOBALLY
@@ -294,7 +294,7 @@ func TestExec_Init(t *testing.T) {
 	ctx := context.Background()
 	logout := make(chan []byte)
 	res := exc.Init(ctx, "hash", logout)
-	if res.Status != pb.StageResultVal_PASS {
+	if res.Status != pb.BuildStatus_PASSED {
 		t.Error("should pass as nothing is happening")
 	}
 	if res.Stage != "INIT" {

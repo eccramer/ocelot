@@ -37,6 +37,7 @@ enum BuildStatus {
     FAILED = 3;
     PASSED = 4;
     FAILED_PRESTART = 5;
+    SKIPPED = 6;
 }
 
 // PollRequest encompasses all the data necessary to set up poll tracking in ocelot.

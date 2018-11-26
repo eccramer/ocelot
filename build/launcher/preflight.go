@@ -21,7 +21,7 @@ import (
 func (w *launcher) preFlight(ctx context.Context, werk *pb.WerkerTask, builder build.Builder) (bailOut bool, err error) {
 	start := time.Now()
 	prefly := build.InitStageUtil("PREFLIGHT")
-	preflightResult := &pb.Result{Stage: prefly.GetStage(), Status: pb.StageResultVal_PASS}
+	preflightResult := &pb.Result{Stage: prefly.GetStage(), Status: pb.BuildStatus_PASSED}
 	acct, _, err := common.GetAcctRepo(werk.FullName)
 	if err != nil {
 		return bailOut, err
@@ -56,7 +56,7 @@ func (w *launcher) preFlight(ctx context.Context, werk *pb.WerkerTask, builder b
 //   the newly mapped parentResult will be stored in OcelotStorage and bailOut will be returned as true.
 //   if the storage fails, an error will be returned
 func (w *launcher) mapOrStoreStageResults(subStageResult *pb.Result, parentResult *pb.Result, id int64, start time.Time) (bailOut bool, err error) {
-	bailOut = subStageResult.Status == pb.StageResultVal_FAIL
+	bailOut = subStageResult.Status == pb.BuildStatus_FAILED
 	var preppedmessages []string
 	for _, msg := range subStageResult.Messages {
 		preppedmessages = append(preppedmessages, build.InitStageUtil(subStageResult.Stage).GetStageLabel()+msg)
@@ -79,16 +79,16 @@ func (w *launcher) handleEnvSecrets(ctx context.Context, builder build.Builder, 
 	creds, err := w.RemoteConf.GetCredsBySubTypeAndAcct(w.Store, pb.SubCredType_ENV, accountName, false)
 	if err != nil {
 		if _, ok := err.(*common.NoCreds); ok {
-			return &pb.Result{Status: pb.StageResultVal_PASS, Messages: []string{fmt.Sprintf("no env vars for %s %s", accountName, models.CHECKMARK)}, Stage: stage.GetStage()}
+			return &pb.Result{Status: pb.BuildStatus_PASSED, Messages: []string{fmt.Sprintf("no env vars for %s %s", accountName, models.CHECKMARK)}, Stage: stage.GetStage()}
 		}
-		return &pb.Result{Error: err.Error(), Status: pb.StageResultVal_FAIL, Messages: []string{"could not get env secrets " + models.FAILED}, Stage: stage.GetStage()}
+		return &pb.Result{Error: err.Error(), Status: pb.BuildStatus_FAILED, Messages: []string{"could not get env secrets " + models.FAILED}, Stage: stage.GetStage()}
 	}
 	var allenvs []string
 	for _, envVar := range creds {
 		allenvs = append(allenvs, fmt.Sprintf("%s=%s", envVar.GetIdentifier(), envVar.GetClientSecret()))
 	}
 	builder.AddGlobalEnvs(allenvs)
-	return &pb.Result{Status: pb.StageResultVal_PASS, Messages: []string{"successfully set env secrets " + models.CHECKMARK}, Stage: stage.GetStage()}
+	return &pb.Result{Status: pb.BuildStatus_PASSED, Messages: []string{"successfully set env secrets " + models.CHECKMARK}, Stage: stage.GetStage()}
 }
 
 //downloadCodebase will download the code that will be built

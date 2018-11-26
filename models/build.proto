@@ -3,6 +3,7 @@ option go_package = "pb";
 package models;
 
 import "creds.proto";
+import "storage.proto";
 import "vcshandler.proto";
 
 //this is a direct translation of the ocelot.yaml file
@@ -44,12 +45,12 @@ message Slack {
     //  identifier attached to url uploaded via `ocelot creds slack add`
     string identifier = 2;
     // on is what type of event to trigger a webhook on can be both PASS and FAIL
-    repeated StageResultVal on = 3;
+    repeated BuildStatus on = 3;
 }
 
 message Result {
     string stage = 1;
-    StageResultVal status = 2;
+    BuildStatus status = 2;
     string error = 3;
     repeated string messages = 4;
 }
@@ -58,12 +59,12 @@ message Triggers {
     repeated string branches = 1;
 }
 
-
-enum StageResultVal {
-    PASS = 0;
-    FAIL = 1;
-    SKIP = 2;
-}
+//
+//enum StageResultVal {
+//    PASS = 0;
+//    FAIL = 1;
+//    SKIP = 2;
+//}
 
 enum SignaledBy {
     PULL_REQUEST = 0;

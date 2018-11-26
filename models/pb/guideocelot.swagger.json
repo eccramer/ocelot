@@ -1979,7 +1979,8 @@
         "RUNNING",
         "FAILED",
         "PASSED",
-        "FAILED_PRESTART"
+        "FAILED_PRESTART",
+        "SKIPPED"
       ],
       "default": "NIL"
     },

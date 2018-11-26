@@ -46,12 +46,12 @@ func (h *SSH) AddGlobalEnvs(envs []string) {
 func (h *SSH) Init(ctx context.Context, hash string, logout chan []byte) *pb.Result {
 	res := &pb.Result{
 		Stage:  "Init",
-		Status: pb.StageResultVal_PASS,
+		Status: pb.BuildStatus_PASSED,
 	}
 	cnxn, err := sshhelper.CreateSSHChannel(ctx, h.Ssh, hash)
 	h.cnxn = cnxn
 	if err != nil {
-		res.Status = pb.StageResultVal_FAIL
+		res.Status = pb.BuildStatus_FAILED
 		res.Error = err.Error()
 		res.Messages = []string{"Failed to initialize ssh builder " + models.FAILED}
 	} else {
@@ -68,14 +68,14 @@ func (h *SSH) Setup(ctx context.Context, logout chan []byte, dockerIdChan chan s
 	su := build.InitStageUtil("setup")
 	cmd := h.SleeplessDownloadTemplateFiles(h.RegisterIP, h.ServicePort)
 	downloadTemplates := h.execute(ctx, su, []string{}, []string{cmd}, logout)
-	if downloadTemplates.Status == pb.StageResultVal_FAIL {
+	if downloadTemplates.Status == pb.BuildStatus_FAILED {
 		log.Log().Error("An error occured while trying to download templates ", downloadTemplates.Error)
 		setupMessages = append(setupMessages, "failed to download templates "+models.FAILED)
 		downloadTemplates.Messages = setupMessages
 		return downloadTemplates, werk.CheckoutHash
 	}
 	setupMessages = append(setupMessages, "successfully downloaded templates "+models.CHECKMARK)
-	return &pb.Result{Stage: su.GetStage(), Status: pb.StageResultVal_PASS, Error: "", Messages: setupMessages}, werk.CheckoutHash
+	return &pb.Result{Stage: su.GetStage(), Status: pb.BuildStatus_PASSED, Error: "", Messages: setupMessages}, werk.CheckoutHash
 }
 
 func (h *SSH) Execute(ctx context.Context, actions *pb.Stage, logout chan []byte, commitHash string) *pb.Result {
@@ -125,10 +125,10 @@ func (h *SSH) execute(ctx context.Context, stage *build.StageUtil, env []string,
 	err := h.cnxn.RunAndLog(sshcmd, env, logout, h.writeToInfo)
 	if err != nil {
 		errMsg := fmt.Sprintf("failed to complete %s stage %s", stage.Stage, models.FAILED)
-		return &pb.Result{Stage: stage.Stage, Status: pb.StageResultVal_FAIL, Error: err.Error(), Messages: []string{errMsg}}
+		return &pb.Result{Stage: stage.Stage, Status: pb.BuildStatus_FAILED, Error: err.Error(), Messages: []string{errMsg}}
 	}
 	success := []string{fmt.Sprintf("completed %s stage %s", stage.Stage, models.CHECKMARK)}
-	return &pb.Result{Stage: stage.Stage, Status: pb.StageResultVal_PASS, Error: "", Messages: success}
+	return &pb.Result{Stage: stage.Stage, Status: pb.BuildStatus_PASSED, Error: "", Messages: success}
 }
 
 func (h *SSH) Close() error {

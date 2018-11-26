@@ -31,7 +31,7 @@ func (w *launcher) runStages(ctx context.Context, werk *pb.WerkerTask, builder b
 		ocelog.Log().WithField("hash", werk.CheckoutHash).Info("finished stage: ", stage.Name)
 		stageDura := time.Now().Sub(stageStart)
 
-		if stageResult.Status == pb.StageResultVal_FAIL {
+		if stageResult.Status == pb.BuildStatus_FAILED {
 			fail = true
 			if err = storeStageToDb(w.Store, werk.Id, stageResult, stageStart, stageDura.Seconds()); err != nil {
 				ocelog.IncludeErrField(err).Error("couldn't store build output")
@@ -68,7 +68,7 @@ func handleTriggers(task *pb.WerkerTask, store storage.BuildStage, stage *pb.Sta
 		}
 		branchGood, err := trigger.BranchRegexOk(task.Branch, stage.Trigger.Branches)
 		if err != nil {
-			result := &pb.Result{Stage: stage.Name, Status: pb.StageResultVal_FAIL, Error: err.Error(), Messages: []string{"failed to check if current branch fit the trigger criteria"}}
+			result := &pb.Result{Stage: stage.Name, Status: pb.BuildStatus_FAILED, Error: err.Error(), Messages: []string{"failed to check if current branch fit the trigger criteria"}}
 			// not sure if we should store, but i think its good visibility especially for right now
 			if err = storeStageToDb(store, task.Id, result, time.Now(), 0); err != nil {
 				ocelog.IncludeErrField(err).Error("couldn't store build output")
@@ -106,7 +106,7 @@ func handleTriggers(task *pb.WerkerTask, store storage.BuildStage, stage *pb.Sta
 
 
 func storeSkipped(store storage.BuildStage, stage *pb.Stage, id int64) (err error) {
-	result := &pb.Result{Stage: stage.Name, Status: pb.StageResultVal_SKIP, Error: "", Messages: []string{"skipping because the current changeset does not meet the trigger conditions"}}
+	result := &pb.Result{Stage: stage.Name, Status: pb.BuildStatus_SKIPPED, Error: "", Messages: []string{"skipping because the current changeset does not meet the trigger conditions"}}
 	if err = storeStageToDb(store, id, result, time.Now(), 0); err != nil {
 		ocelog.IncludeErrField(err).Error("couldn't store build output")
 		return
