@@ -9,6 +9,7 @@ import (
 	ocelog "github.com/shankj3/go-til/log"
 	"github.com/shankj3/ocelot/build"
 	"github.com/shankj3/ocelot/build/valet"
+	"github.com/shankj3/ocelot/common"
 	"github.com/shankj3/ocelot/models"
 	"github.com/shankj3/ocelot/models/pb"
 	"github.com/shankj3/ocelot/storage"
@@ -37,7 +38,7 @@ var (
 	)
 )
 
-func init(){
+func init() {
 	prometheus.MustRegister(activeBuilds, buildDurationHist, buildCount)
 }
 
@@ -60,7 +61,8 @@ func (w *launcher) WatchForResults(hash string, dbId int64) {
 	w.StreamChan <- transport
 }
 
-// MakeItSo will call appropriate builder functions
+// MakeItSo is the bread and butter of the werker. It registers the build with consul, ensures notifications, stores all the build data
+//  in the OcelotStorage implementation, and runs all the stages both setup and ones defined by the user.
 func (w *launcher) MakeItSo(werk *pb.WerkerTask, builder build.Builder, finish, done chan int) {
 	startBuild()
 	start := time.Now()
@@ -74,7 +76,7 @@ func (w *launcher) MakeItSo(werk *pb.WerkerTask, builder build.Builder, finish, 
 		endBuild(w.WerkerType.String(), start)
 	}()
 	// set up notifications to be executed on build completion
-	defer func(){
+	defer func() {
 		if err := w.doNotifications(werk); err != nil {
 			ocelog.IncludeErrField(err).Error("build notification failed!")
 		}
@@ -95,7 +97,7 @@ func (w *launcher) MakeItSo(werk *pb.WerkerTask, builder build.Builder, finish, 
 	// start building with the Builder
 	result := builder.Init(ctx, werk.CheckoutHash, w.infochan)
 	// at the end of the build, close out any build-length connections associated with build
-	defer func(){
+	defer func() {
 		if err := builder.Close(); err != nil {
 			ocelog.IncludeErrField(err).Error("unable to close builder connections cleanly")
 		}
@@ -146,7 +148,9 @@ func (w *launcher) MakeItSo(werk *pb.WerkerTask, builder build.Builder, finish, 
 	}
 
 	// run integrations, executable download, codebase download
-	if bailOut, err := w.preFlight(ctx, werk, builder); err != nil || bailOut { return }
+	if bailOut, err := w.preFlight(ctx, werk, builder); err != nil || bailOut {
+		return
+	}
 
 	// run the actual stages outlined in the ocelot.yml
 	fail, dura, err := w.runStages(ctx, werk, builder)
@@ -166,25 +170,29 @@ func (w *launcher) MakeItSo(werk *pb.WerkerTask, builder build.Builder, finish, 
 	ocelog.Log().Infof("finished building id %s", werk.CheckoutHash)
 }
 
-
 // addGlobalEnvVars sets the global env vars on builders, these are the variables that will live for the duration of the build.
 //	- `GIT_HASH`
 //	- `BUILD_ID`
 //	- `GIT_HASH_SHORT`
 //	- `GIT_BRANCH`
 //	- `WORKSPACE`
+//  - `GIT_PREVIOUS_SUCCESSFUL_COMMIT`
 func (w *launcher) addGlobalEnvVars(werk *pb.WerkerTask, builder build.Builder) {
+	acct, repo, _ := common.GetAcctRepo(werk.FullName)
+	// we don't care if there is an error retrieving this, if it fails it'll return an empty value
+	// and that's what we want!
+	lastSuccessfulHash, _ := w.Store.GetLastSuccessfulBuildHash(acct, repo,werk.Branch)
 	paddedEnvs := []string{
 		fmt.Sprintf("GIT_HASH=%s", werk.CheckoutHash),
 		fmt.Sprintf("BUILD_ID=%d", werk.Id),
 		fmt.Sprintf("GIT_HASH_SHORT=%s", werk.CheckoutHash[:7]),
 		fmt.Sprintf("GIT_BRANCH=%s", werk.Branch),
 		fmt.Sprintf("WORKSPACE=%s", w.Basher.CloneDir(werk.CheckoutHash)),
+		fmt.Sprintf("GIT_PREVIOUS_SUCCESSFUL_COMMIT=%s", lastSuccessfulHash),
 	}
 	paddedEnvs = append(paddedEnvs, werk.BuildConf.Env...)
 	builder.SetGlobalEnv(paddedEnvs)
 }
-
 
 func (w *launcher) listenForDockerUuid(dockerChan chan string, checkoutHash string) error {
 	dockerUuid := <-dockerChan

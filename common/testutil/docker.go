@@ -17,10 +17,10 @@ import (
 
 // DockerCreateExec creates a docker container by running the docker client via the os/exec package. It will return a cleanup function that will
 // kill the container.
-func DockerCreateExec(t *testing.T, ctx context.Context, imageName string, ports []string, mounts... string) (cleanup func(), err error) {
+func DockerCreateExec(t *testing.T, ctx context.Context, imageName string, ports []string, mounts ...string) (cleanup func(), err error) {
 	portsString := " -p " + strings.Join(ports, " -p ")
 	mountsStrings := " -v " + strings.Join(mounts, " -v ")
-	command := fmt.Sprintf("docker run --rm -d %s %s %s", portsString, mountsStrings, imageName)
+	command := fmt.Sprintf("docker run --rm --init -d %s %s %s", portsString, mountsStrings, imageName)
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd := exec.CommandContext(ctx, "/bin/bash", "-c", command)
@@ -33,8 +33,8 @@ func DockerCreateExec(t *testing.T, ctx context.Context, imageName string, ports
 	time.Sleep(2 * time.Second)
 	t.Log(stdout.String())
 	id := strings.TrimSpace(stdout.String())
-	cleanup = func(){
-		cmd := exec.Command("/bin/bash", "-c", "docker kill " + id)
+	cleanup = func() {
+		cmd := exec.Command("/bin/bash", "-c", "docker kill "+id)
 		if err := cmd.Run(); err != nil {
 			t.Fatal(err)
 		}
@@ -44,7 +44,7 @@ func DockerCreateExec(t *testing.T, ctx context.Context, imageName string, ports
 
 // i used all the damn functions that docker is using
 // WHY
-func DockerCreate(t *testing.T, ctx context.Context, imageName string, ports []string, mounts... string) (isRunning bool, cleanup func()) {
+func DockerCreate(t *testing.T, ctx context.Context, imageName string, ports []string, mounts ...string) (isRunning bool, cleanup func()) {
 	cli, err := client.NewEnvClient()
 	if err != nil {
 		t.Fatal("couldn't create docker cli, err: ", err.Error())
@@ -68,13 +68,15 @@ func DockerCreate(t *testing.T, ctx context.Context, imageName string, ports []s
 		Tty:          true,
 	}
 	binds := append([]string{"/var/run/docker.sock:/var/run/docker.sock"}, mounts...)
+	init := true
 	hostConfig := &container.HostConfig{
 		//TODO: have it be overridable via env variable
-		Binds: binds,
+		Binds:        binds,
 		PortBindings: bindings,
-		AutoRemove: true,
+		AutoRemove:   true,
 		//Binds: []string{ homeDirectory + ":/.ocelot", "/var/run/docker.sock:/var/run/docker.sock"},
 		NetworkMode: "host",
+		Init: &init,
 	}
 	resp, err := cli.ContainerCreate(ctx, containerConfig, hostConfig, nil, "")
 	if err != nil {
@@ -94,7 +96,7 @@ func DockerCreate(t *testing.T, ctx context.Context, imageName string, ports []s
 	//	t.Error("couldn't get container log, error: ", err.Error())
 	//	return
 	//}
-	cleanup = func(){cli.ContainerKill(ctx, resp.ID, "SIGKILL")}
+	cleanup = func() { cli.ContainerKill(ctx, resp.ID, "SIGKILL") }
 	isRunning = true
 	return
 }

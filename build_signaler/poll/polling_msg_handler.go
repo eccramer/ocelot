@@ -16,13 +16,13 @@ const CronDir = "/etc/cron.d"
 
 func NewMsgHandler(topic string) *MsgHandler {
 	return &MsgHandler{
-		Topic:topic,
+		Topic:   topic,
 		cronDir: "/etc/cron.d",
 	}
 }
 
 type MsgHandler struct {
-	Topic string
+	Topic   string
 	cronDir string
 }
 
@@ -66,7 +66,7 @@ func DeleteCronFile(event *pb.PollRequest, cronDir string) error {
 }
 
 func WriteCronFile(event *pb.PollRequest, cronDir string) error {
-	cron := fmt.Sprintf("%s root /bin/run_changecheck.sh %s/%s %s\n", event.Cron, event.Account, event.Repo, event.Branches)
+	cron := fmt.Sprintf("%s root /bin/run_changecheck.sh %s/%s %s %s\n", event.Cron, event.Account, event.Repo, event.Branches, event.Type.String())
 	fullPath := filepath.Join(cronDir, event.Account+"_"+event.Repo)
 	isfile, err := exists(fullPath)
 	if err != nil {

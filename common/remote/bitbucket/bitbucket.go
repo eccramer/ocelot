@@ -2,12 +2,13 @@ package bitbucket
 
 import (
 	"bufio"
-	//"encoding/json"
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/url"
+	"strings"
 
 	"github.com/golang/protobuf/jsonpb"
 	ocelog "github.com/shankj3/go-til/log"
@@ -18,12 +19,13 @@ import (
 	"github.com/shankj3/ocelot/models/pb"
 )
 
-const DefaultCallbackURL = "http://ec2-34-212-13-136.us-west-2.compute.amazonaws.com:8088/bitbucket"
 const DefaultRepoBaseURL = "https://api.bitbucket.org/2.0/repositories/%v"
-const V1RepoBaseURL = "https://api.bitbucket.org/1.0/repositories/%v"
+
+const TokenUrl = "https://bitbucket.org/site/oauth2/access_token"
 
 //Returns VCS handler for pulling source code and auth token if exists (auth token is needed for code download)
 func GetBitbucketClient(cfg *pb.VCSCreds) (models.VCSHandler, string, error) {
+	cfg.TokenURL = TokenUrl
 	bbClient := &ocenet.OAuthClient{}
 	token, err := bbClient.Setup(cfg)
 	if err != nil {
@@ -34,11 +36,11 @@ func GetBitbucketClient(cfg *pb.VCSCreds) (models.VCSHandler, string, error) {
 }
 
 func GetBitbucketFromHttpClient(cli *http.Client) models.VCSHandler {
-	unmarshaler := jsonpb.Unmarshaler{AllowUnknownFields:true}
+	unmarshaler := jsonpb.Unmarshaler{AllowUnknownFields: true}
 	bb := &Bitbucket{
-		Client: &ocenet.OAuthClient{AuthClient:*cli, Unmarshaler: unmarshaler},
-		Unmarshaler:unmarshaler,
-		Marshaler: jsonpb.Marshaler{},
+		Client:        &ocenet.OAuthClient{AuthClient: cli, Unmarshaler: unmarshaler},
+		Unmarshaler:   unmarshaler,
+		Marshaler:     jsonpb.Marshaler{},
 		isInitialized: true,
 	}
 	return bb
@@ -50,7 +52,7 @@ func GetBitbucketHandler(adminConfig *pb.VCSCreds, client ocenet.HttpClient) mod
 	bb := &Bitbucket{
 		Client:        client,
 		Marshaler:     jsonpb.Marshaler{},
-		Unmarshaler:   jsonpb.Unmarshaler{AllowUnknownFields: true,},
+		Unmarshaler:   jsonpb.Unmarshaler{AllowUnknownFields: true},
 		credConfig:    adminConfig,
 		isInitialized: true,
 	}
@@ -68,6 +70,10 @@ type Bitbucket struct {
 
 	credConfig    *pb.VCSCreds
 	isInitialized bool
+}
+
+func (bb *Bitbucket) GetVcsType() pb.SubCredType {
+	return pb.SubCredType_BITBUCKET
 }
 
 func (bb *Bitbucket) GetClient() ocenet.HttpClient {
@@ -99,14 +105,27 @@ func (bb *Bitbucket) GetFile(filePath string, fullRepoName string, commitHash st
 	return
 }
 
+func translateBbCommit(commit *pbb.Commit) *pb.Commit {
+	return &pb.Commit{
+		Hash: commit.Hash,
+		Message: commit.Message,
+		Date: commit.Date,
+		Author: &pb.User{UserName: commit.Author.User.Username},
+	}
+}
+
 //GetAllCommits /2.0/repositories/{username}/{repo_slug}/commits
-func (bb *Bitbucket) GetAllCommits(acctRepo string, branch string) (*pbb.Commits, error) {
+func (bb *Bitbucket) GetAllCommits(acctRepo string, branch string) ([]*pb.Commit, error) {
 	commits := &pbb.Commits{}
 	err := bb.Client.GetUrl(fmt.Sprintf(bb.GetBaseURL(), acctRepo)+"/commits/"+branch, commits)
 	if err != nil {
 		failedBBRemoteCalls.WithLabelValues("GetAllCommits").Inc()
 	}
-	return commits, err
+	var translatedCommits []*pb.Commit
+	for _, commit := range commits.Values {
+		translatedCommits = append(translatedCommits, translateBbCommit(commit))
+	}
+	return translatedCommits, err
 }
 
 //GetCommitLog will return a list of Commits, starting with the most recent and ending at the lastHash value.
@@ -117,9 +136,9 @@ func (bb *Bitbucket) GetCommitLog(acctRepo, branch, lastHash string) ([]*pb.Comm
 		return commits, nil
 	}
 	var foundLast bool
-	urrl := fmt.Sprintf(bb.GetBaseURL(), acctRepo)+"/commits/"+branch
+	urrl := fmt.Sprintf(bb.GetBaseURL(), acctRepo) + "/commits/" + branch
 	for {
-		if urrl == "" {
+		if urrl == "" || foundLast == true {
 			break
 		}
 		commitz := &pbb.Commits{}
@@ -129,7 +148,7 @@ func (bb *Bitbucket) GetCommitLog(acctRepo, branch, lastHash string) ([]*pb.Comm
 			return commits, err
 		}
 		for _, commit := range commitz.Values {
-			commits = append(commits, &pb.Commit{Hash:commit.Hash, Message:commit.Message, Date:commit.Date})
+			commits = append(commits, &pb.Commit{Hash: commit.Hash, Message: commit.Message, Date: commit.Date})
 			if commit.Hash == lastHash {
 				foundLast = true
 				break
@@ -144,14 +163,25 @@ func (bb *Bitbucket) GetCommitLog(acctRepo, branch, lastHash string) ([]*pb.Comm
 	return commits, err
 }
 
-func (bb *Bitbucket) GetRepoDetail(acctRepo string) (pbb.PaginatedRepository_RepositoryValues, error) {
+func (bb *Bitbucket) GetRepoLinks(acctRepo string) (*pb.Links, error) {
 	repoVal := &pbb.PaginatedRepository_RepositoryValues{}
 	err := bb.Client.GetUrl(fmt.Sprintf(DefaultRepoBaseURL, acctRepo), repoVal)
 	if err != nil {
 		failedBBRemoteCalls.WithLabelValues("GetRepoDetail").Inc()
-		return *repoVal, err
+		return nil, err
 	}
-	return *repoVal, nil
+	if repoVal.Type == "error" {
+		return nil, errors.New(fmt.Sprintf("could not get repository detail at %s", acctRepo))
+	}
+
+	links := &pb.Links{
+		Commits: repoVal.Links.Commits.Href,
+		Branches: repoVal.Links.Branches.Href,
+		Tags: repoVal.Links.Tags.Href,
+		Hooks: repoVal.Links.Hooks.Href,
+		Pullrequests: repoVal.Links.Pullrequests.Href,
+	}
+	return links, nil
 }
 
 func (bb *Bitbucket) GetBranchLastCommitData(acctRepo, branch string) (hist *pb.BranchHistory, err error) {
@@ -165,7 +195,7 @@ func (bb *Bitbucket) GetBranchLastCommitData(acctRepo, branch string) (hist *pb.
 	}
 	defer resp.Body.Close()
 	// status code handling using bitbucket API spec
-    //   https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Busername%7D/%7Brepo_slug%7D/refs/branches/%7Bname%7D
+	//   https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Busername%7D/%7Brepo_slug%7D/refs/branches/%7Bname%7D
 	switch resp.StatusCode {
 	case http.StatusNotFound:
 		err = models.Branch404(branch, acctRepo)
@@ -207,9 +237,11 @@ func (bb *Bitbucket) GetAllBranchesLastCommitData(acctRepo string) ([]*pb.Branch
 	return branchHistory, nil
 }
 
-
 //CreateWebhook will create webhook at specified webhook url
 func (bb *Bitbucket) CreateWebhook(webhookURL string) error {
+	if bb.CallbackURL == "" {
+		return models.NoCallbackURL(pb.SubCredType_BITBUCKET)
+	}
 	if !bb.FindWebhooks(webhookURL) {
 		//create webhook if one does not already exist
 		newWebhook := &pbb.CreateWebhook{
@@ -235,10 +267,7 @@ func (bb *Bitbucket) CreateWebhook(webhookURL string) error {
 
 //GetCallbackURL is a getter for retrieving callbackURL for bitbucket webhooks
 func (bb *Bitbucket) GetCallbackURL() string {
-	if len(bb.CallbackURL) > 0 {
-		return bb.CallbackURL
-	}
-	return DefaultCallbackURL
+	return bb.CallbackURL + "/" + strings.ToLower(bb.GetVcsType().String())
 }
 
 //SetCallbackURL sets callback urls to be used for webhooks
@@ -323,7 +352,6 @@ func (bb *Bitbucket) FindWebhooks(getWebhookURL string) bool {
 	return bb.FindWebhooks(webhooks.GetNext())
 }
 
-
 func (bb *Bitbucket) GetPRCommits(url string) ([]*pb.Commit, error) {
 	var commits []*pb.Commit
 	for {
@@ -337,20 +365,16 @@ func (bb *Bitbucket) GetPRCommits(url string) ([]*pb.Commit, error) {
 			return commits, err
 		}
 		for _, commit := range commitz.Values {
-			commits = append(commits, &pb.Commit{Hash:commit.Hash, Message:commit.Message, Date:commit.Date, Author:&pb.User{UserName: commit.Author.Username}})
+			commits = append(commits, &pb.Commit{Hash: commit.Hash, Message: commit.Message, Date: commit.Date, Author: &pb.User{UserName: commit.Author.User.Username}})
 		}
 		url = commitz.GetNext()
 	}
 	return commits, nil
 }
 
-
 func (bb *Bitbucket) PostPRComment(acctRepo, prId, hash string, fail bool, buildId int64) error {
-	//	https://api.bitbucket.org/1.0/repositories/{accountname}/{repo_slug}/pullrequests/{pull_request_id}/comments --data "content=string"
-	// ** need to use v1 url because atlassian is annoying: **
-	// https://community.atlassian.com/t5/Answers-Developer-Questions/Are-you-planning-on-offering-an-update-pull-request-comment-API/qaq-p/526892
 	path := fmt.Sprintf("%s/pullrequests/%s/comments", acctRepo, prId)
-    urll := fmt.Sprintf(V1RepoBaseURL, path)
+	urll := fmt.Sprintf(bb.GetBaseURL(), path)
 	var status string
 	switch fail {
 	case true:
@@ -358,17 +382,83 @@ func (bb *Bitbucket) PostPRComment(acctRepo, prId, hash string, fail bool, build
 	case false:
 		status = "PASSED"
 	}
-    content := fmt.Sprintf("Ocelot build has **%s** for commit **%s**.\n\nRun `ocelot status -build-id %d` for detailed stage status, and `ocelot run -build-id %d` for complete build logs.", status, hash, buildId, buildId)
-	resp, err := bb.Client.PostUrlForm(urll, url.Values{"content":{content}})
+	content := fmt.Sprintf("Ocelot build has **%s** for commit **%s**.\n\nRun `ocelot status -build-id %d` for detailed stage status, and `ocelot run -build-id %d` for complete build logs.", status, hash, buildId, buildId)
+	body := map[string]map[string]string{
+		"content": {
+			"raw": content,
+			//"markup": "markdown",
+		},
+	}
+	bodybytes, _ := json.Marshal(body)
+	resp, err := bb.Client.GetAuthClient().Post(urll, "application/json", bytes.NewReader(bodybytes))
 	defer resp.Body.Close()
 	if err != nil {
 		failedBBRemoteCalls.WithLabelValues("PostPRComment").Inc()
-    	return err
+		return err
 	}
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusCreated {
 		body, _ := ioutil.ReadAll(resp.Body)
 		err = errors.New(fmt.Sprintf("got a non-ok exit code of %d, body is: %s", resp.StatusCode, string(body)))
 		return err
 	}
 	return err
+}
+
+//GetChangedFiles will get the list of files that have changed between commits. If earliestHash is not passed,
+// then the diff list will be off of just the changed files in the latestHash. If earliesthash is passed, then it will
+// return the changeset similar to git diff --name-only <latestHash>..<earliestHash>
+func (bb *Bitbucket) GetChangedFiles(acctRepo, latestHash, earliestHash string) (changedFiles []string, err error) {
+	changedFileSet := map[string]bool{}
+	// https://api.bitbucket.org/2.0/repositories/bitbucket/geordi/diffstat/d222fa2..e174964
+
+	var diffStatPath string
+	if earliestHash != "" {
+		diffStatPath = fmt.Sprintf("%s..%s", latestHash, earliestHash)
+	} else {
+		diffStatPath = latestHash
+	}
+	path := fmt.Sprintf("%s/diffstat/%s", acctRepo, diffStatPath)
+	urll := fmt.Sprintf(bb.GetBaseURL(), path)
+	for {
+		if urll == "" {
+			break
+		}
+		diff := &pbb.FullDiff{}
+		err := bb.Client.GetUrl(urll, diff)
+		if err != nil {
+			failedBBRemoteCalls.WithLabelValues("GetChangedFiles").Inc()
+			return changedFiles, err
+		}
+		for _, diffstat := range diff.Values {
+			if diffstat.New != nil {
+				changedFileSet[diffstat.New.Path] = true
+			}
+			if diffstat.Old != nil {
+				changedFileSet[diffstat.Old.Path] = true
+			}
+		}
+		urll = diff.GetNext()
+	}
+	changedFiles = common.GetMapStringKeys(changedFileSet)
+	return
+}
+
+func (bb *Bitbucket) GetCommit(acctRepo, hash string) (*pb.Commit, error) {
+	path := fmt.Sprintf("%s/commit/%s", acctRepo, hash)
+	urll := fmt.Sprintf(bb.GetBaseURL(), path)
+	commit := &pbb.Commit{}
+	err := bb.Client.GetUrl(urll, commit)
+	if err != nil {
+		failedBBRemoteCalls.WithLabelValues("GetCommit").Inc()
+		return nil, err
+	}
+	var author *pb.User
+	if commit.GetAuthor() != nil {
+		if user := commit.Author.GetUser(); user != nil {
+			author = &pb.User{UserName: user.Username, DisplayName: user.DisplayName}
+		}
+	}
+	translatedCommit := &pb.Commit{Message: commit.Message, Hash: commit.Hash, Date: commit.Date, Author: author}
+	return translatedCommit, nil
+
 }

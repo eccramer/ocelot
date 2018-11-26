@@ -34,26 +34,28 @@ func init() {
 	prometheus.MustRegister(dockerErrors)
 }
 
+//Docker provides an implementation of the Builder interface that utilizes docker for its building. It will start up a docker container,
+// download code into it, add environment variables, and exec commands against it.
 type Docker struct {
-	Log          	io.ReadCloser
-	ContainerId  	string
-	DockerClient 	*client.Client
-	globalEnvs 		[]string
+	Log             io.ReadCloser
+	ContainerId     string
+	DockerClient    *client.Client
+	globalEnvs      []string
 	extraGlobalEnvs []string
 	*basher.Basher
 }
 
 func NewDockerBuilder(b *basher.Basher) build.Builder {
-	return &Docker{Log:nil, ContainerId:"", globalEnvs:nil, extraGlobalEnvs:nil, DockerClient:nil, Basher: b}
+	return &Docker{Log: nil, ContainerId: "", globalEnvs: nil, extraGlobalEnvs: nil, DockerClient: nil, Basher: b}
 }
 
-func (d *Docker) Init(ctx context.Context, hash string, logout chan[]byte) *pb.Result {
+func (d *Docker) Init(ctx context.Context, hash string, logout chan []byte) *pb.Result {
 	// todo: maybe this could go in here??
 	//cli, err := client.NewEnvClient()
 	//d.DockerClient = cli
 	res := &pb.Result{
-		Status: pb.StageResultVal_PASS,
-		Stage: "INIT",
+		Status:   pb.StageResultVal_PASS,
+		Stage:    "INIT",
 		Messages: []string{"Initializing docker builder..."},
 	}
 	return res
@@ -63,6 +65,10 @@ func (d *Docker) GetContainerId() string {
 	return d.ContainerId
 }
 
+// Setup pulls the docker image defined in the werk task, then creates a container using that image, sending the container id over the dockerIdChan.
+//  It mounts the docker socket to allow for docker builds within the container. It then starts the container with the initial command of downloading
+//  all the ocelot related files and installing necessary packages, and attaches logout to the output so the logs can be stored with teh rest of the build
+//  logs
 func (d *Docker) Setup(ctx context.Context, logout chan []byte, dockerIdChan chan string, werk *pb.WerkerTask, rc cred.CVRemoteConfig, werkerPort string) (*pb.Result, string) {
 	var setupMessages []string
 
@@ -100,26 +106,27 @@ func (d *Docker) Setup(ctx context.Context, logout chan []byte, dockerIdChan cha
 
 	logout <- []byte(su.GetStageLabel() + "Creating container...")
 
-
 	//container configurations
 	containerConfig := &container.Config{
-		Image: imageName,
-		User: "root",
-		Env: d.globalEnvs,
-		Cmd: d.DownloadTemplateFiles(werkerPort),
+		Image:        imageName,
+		User:         "root",
+		Env:          d.globalEnvs,
+		Cmd:          d.DownloadTemplateFiles(werkerPort),
 		AttachStderr: true,
 		AttachStdout: true,
-		AttachStdin:true,
-		Tty:true,
+		AttachStdin:  true,
+		Tty:          true,
 	}
 
 	//homeDirectory, _ := homedir.Expand("~/.ocelot")
+	init := true
 	//host config binds are mount points
 	hostConfig := &container.HostConfig{
 		//TODO: have it be overridable via env variable
 		Binds: []string{"/var/run/docker.sock:/var/run/docker.sock"},
 		//Binds: []string{ homeDirectory + ":/.ocelot", "/var/run/docker.sock:/var/run/docker.sock"},
 		NetworkMode: "host",
+		Init: &init,
 	}
 
 	resp, err := cli.ContainerCreate(ctx, containerConfig, hostConfig, nil, "")
@@ -193,7 +200,7 @@ func (d *Docker) Setup(ctx context.Context, logout chan []byte, dockerIdChan cha
 		return installed, d.ContainerId
 	}
 
-	logout <- []byte(su.GetStageLabel()  + "Retrieving BARE Key")
+	logout <- []byte(su.GetStageLabel() + "Retrieving BARE Key")
 
 	acctName := strings.Split(werk.FullName, "/")[0]
 	vaultAddr := d.getVaultAddr(rc.GetVault())
@@ -212,7 +219,7 @@ func (d *Docker) Setup(ctx context.Context, logout chan []byte, dockerIdChan cha
 		return result, d.ContainerId
 	}
 
-	setupMessages = append(setupMessages, fmt.Sprintf("successfully downloaded BARE key for %s  %s", werk.FullName, models.CHECKMARK), "completed setup stage " + models.CHECKMARK)
+	setupMessages = append(setupMessages, fmt.Sprintf("successfully downloaded BARE key for %s  %s", werk.FullName, models.CHECKMARK), "completed setup stage "+models.CHECKMARK)
 	result.Messages = setupMessages
 	return result, d.ContainerId
 }
@@ -238,10 +245,11 @@ func (d *Docker) AddGlobalEnvs(envs []string) {
 }
 
 // ExecuteIntegration will basically run Execute but without the cd and run cmds because we are generating the scripts in the code
-func (d *Docker) ExecuteIntegration(ctx context.Context, stage *pb.Stage, stgUtil *build.StageUtil, logout chan[]byte) *pb.Result {
+func (d *Docker) ExecuteIntegration(ctx context.Context, stage *pb.Stage, stgUtil *build.StageUtil, logout chan []byte) *pb.Result {
 	return d.Exec(ctx, stgUtil.GetStage(), stgUtil.GetStageLabel(), stage.Env, stage.Script, logout)
 }
 
+// Execute runs a command via Exec on the container, but it first will cd to the directory of the cloned repo
 func (d *Docker) Execute(ctx context.Context, stage *pb.Stage, logout chan []byte, commitHash string) *pb.Result {
 	if len(d.ContainerId) == 0 {
 		return &pb.Result{
@@ -255,6 +263,7 @@ func (d *Docker) Execute(ctx context.Context, stage *pb.Stage, logout chan []byt
 	return d.Exec(ctx, su.GetStage(), su.GetStageLabel(), stage.Env, d.CDAndRunCmds(stage.Script, commitHash), logout)
 }
 
+// Exec runs the equivalent of `docker exec`, sending all the logs over logout. The result of the command will be returned in a result object
 func (d *Docker) Exec(ctx context.Context, currStage string, currStageStr string, env []string, cmds []string, logout chan []byte) *pb.Result {
 	var stageMessages []string
 	resp, err := d.DockerClient.ContainerExecCreate(ctx, d.ContainerId, types.ExecConfig{
@@ -316,11 +325,14 @@ func (d *Docker) Exec(ctx context.Context, currStage string, currStageStr string
 	}
 }
 
+//Close isn't relevant to the docker implementation of the Builder interface
 func (d *Docker) Close() error {
 	// do nothing, this is for closing any connections that needed to be persisted for the build
 	return nil
 }
 
+// writeToInfo writes a buffer to the info channel using bufio's Scanner. It will append an error to the infochan if the scanner
+//  returns an error
 func (d *Docker) writeToInfo(stage string, rd *bufio.Reader, infochan chan []byte) {
 	scanner := bufio.NewScanner(rd)
 	buf := make([]byte, 0, 64*1024)
@@ -340,4 +352,3 @@ func (d *Docker) writeToInfo(stage string, rd *bufio.Reader, infochan chan []byt
 		infochan <- []byte("OCELOT | BY THE WAY SOMETHING WENT WRONG SCANNING STAGE INPUT")
 	}
 }
-

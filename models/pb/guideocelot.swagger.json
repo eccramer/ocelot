@@ -70,11 +70,19 @@
           },
           {
             "name": "buildId",
-            "description": "build id is the build number given by ocelot that is associated with the commit.",
+            "description": "buildId is the build number given by ocelot that is associated with the commit.",
             "in": "query",
             "required": false,
             "type": "string",
             "format": "int64"
+          },
+          {
+            "name": "strip",
+            "description": "strip will return builds without ansi // tty formatting.",
+            "in": "query",
+            "required": false,
+            "type": "boolean",
+            "format": "boolean"
           }
         ],
         "tags": [
@@ -186,9 +194,18 @@
               "SSHKEY",
               "SLACK",
               "DEVPROFILE",
-              "ENV"
+              "ENV",
+              "HELM_REPO"
             ],
             "default": "NIL_SCT"
+          },
+          {
+            "name": "id",
+            "description": "id is credentials id from database.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
           }
         ],
         "tags": [
@@ -237,8 +254,8 @@
     },
     "/v1/creds/env": {
       "get": {
-        "summary": "Get all known generic credentials (env).",
-        "description": "Get all known generic credentials (env).",
+        "summary": "Get all known generic credentials (env, helmrepo).",
+        "description": "Get all known generic credentials (env, helmrepo).",
         "operationId": "GetGenericCreds",
         "responses": {
           "200": {
@@ -255,8 +272,8 @@
         ]
       },
       "post": {
-        "summary": "Add new generic credentials",
-        "description": "Add new generic credentials.",
+        "summary": "Add new generic credentials (env, helmrepo)",
+        "description": "Add new generic credentials. (env, helmrepo)",
         "operationId": "SetGenericCreds",
         "responses": {
           "200": {
@@ -315,8 +332,8 @@
         ]
       },
       "put": {
-        "summary": "Update a Generic Credential",
-        "description": "Endpoint for updating a Generic credential in ocelot (ie ENV var). This should only be called if hte credential exists. subType is a required query param \nRefer to modelsGenericCreds for the object fields",
+        "summary": "Update a Generic Credential (env, helmrepo url)",
+        "description": "Endpoint for updating a Generic credential in ocelot (ie ENV var or HELMREPO url). This should only be called if hte credential exists. subType is a required query param \nRefer to modelsGenericCreds for the object fields",
         "operationId": "UpdateGenericCreds2",
         "responses": {
           "200": {
@@ -356,8 +373,8 @@
     },
     "/v1/creds/generic": {
       "get": {
-        "summary": "Get all known generic credentials (env).",
-        "description": "Get all known generic credentials (env).",
+        "summary": "Get all known generic credentials (env, helmrepo).",
+        "description": "Get all known generic credentials (env, helmrepo).",
         "operationId": "GetGenericCreds2",
         "responses": {
           "200": {
@@ -374,8 +391,8 @@
         ]
       },
       "post": {
-        "summary": "Add new generic credentials",
-        "description": "Add new generic credentials.",
+        "summary": "Add new generic credentials (env, helmrepo)",
+        "description": "Add new generic credentials. (env, helmrepo)",
         "operationId": "SetGenericCreds2",
         "responses": {
           "200": {
@@ -434,8 +451,8 @@
         ]
       },
       "put": {
-        "summary": "Update a Generic Credential",
-        "description": "Endpoint for updating a Generic credential in ocelot (ie ENV var). This should only be called if hte credential exists. subType is a required query param \nRefer to modelsGenericCreds for the object fields",
+        "summary": "Update a Generic Credential (env, helmrepo url)",
+        "description": "Endpoint for updating a Generic credential in ocelot (ie ENV var or HELMREPO url). This should only be called if hte credential exists. subType is a required query param \nRefer to modelsGenericCreds for the object fields",
         "operationId": "UpdateGenericCreds",
         "responses": {
           "200": {
@@ -569,9 +586,18 @@
               "SSHKEY",
               "SLACK",
               "DEVPROFILE",
-              "ENV"
+              "ENV",
+              "HELM_REPO"
             ],
             "default": "NIL_SCT"
+          },
+          {
+            "name": "id",
+            "description": "id is credentials id from database.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
           }
         ],
         "tags": [
@@ -737,7 +763,8 @@
               "SSHKEY",
               "SLACK",
               "DEVPROFILE",
-              "ENV"
+              "ENV",
+              "HELM_REPO"
             ],
             "default": "NIL_SCT"
           },
@@ -747,6 +774,21 @@
             "in": "query",
             "required": false,
             "type": "string"
+          },
+          {
+            "name": "detailUrlBase",
+            "description": "detailUrlBase is the base url for an ocelot ui. when building the notification, will\n  add {{detailUrlBase}}/repos/{{account}}/{{repo}}/{{buildId}}.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "id",
+            "description": "id is credentials id from database.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
           }
         ],
         "tags": [
@@ -934,9 +976,18 @@
               "SSHKEY",
               "SLACK",
               "DEVPROFILE",
-              "ENV"
+              "ENV",
+              "HELM_REPO"
             ],
             "default": "NIL_SCT"
+          },
+          {
+            "name": "id",
+            "description": "id is credentials id from database.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
           }
         ],
         "tags": [
@@ -1111,9 +1162,18 @@
               "SSHKEY",
               "SLACK",
               "DEVPROFILE",
-              "ENV"
+              "ENV",
+              "HELM_REPO"
             ],
             "default": "NIL_SCT"
+          },
+          {
+            "name": "id",
+            "description": "id is credentials id from database.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
           }
         ],
         "tags": [
@@ -1309,9 +1369,18 @@
               "SSHKEY",
               "SLACK",
               "DEVPROFILE",
-              "ENV"
+              "ENV",
+              "HELM_REPO"
             ],
             "default": "NIL_SCT"
+          },
+          {
+            "name": "id",
+            "description": "id is credentials id from database.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
           }
         ],
         "tags": [
@@ -1423,11 +1492,19 @@
           },
           {
             "name": "buildId",
-            "description": "build id is the build number given by ocelot that is associated with the commit.",
+            "description": "buildId is the build number given by ocelot that is associated with the commit.",
             "in": "query",
             "required": false,
             "type": "string",
             "format": "int64"
+          },
+          {
+            "name": "strip",
+            "description": "strip will return builds without ansi // tty formatting.",
+            "in": "query",
+            "required": false,
+            "type": "boolean",
+            "format": "boolean"
           }
         ],
         "tags": [
@@ -1601,6 +1678,29 @@
             "required": false,
             "type": "integer",
             "format": "int32"
+          },
+          {
+            "name": "type",
+            "description": "type is the vcs type fo the account and repo.\n\n - BITBUCKET: / VCS ///\n - NEXUS: / REPO ///\n - KUBECONF: / K8S ///\n - SSHKEY: / SSH ///\n - SLACK: / NOTIFY ///\n - DEVPROFILE: / APPLE ///\n - ENV: / GENERIC ///",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "NIL_SCT",
+              "BITBUCKET",
+              "GITHUB",
+              "NEXUS",
+              "MAVEN",
+              "DOCKER",
+              "MINIO",
+              "KUBECONF",
+              "SSHKEY",
+              "SLACK",
+              "DEVPROFILE",
+              "ENV",
+              "HELM_REPO"
+            ],
+            "default": "NIL_SCT"
           }
         ],
         "tags": [
@@ -1694,6 +1794,29 @@
             "required": false,
             "type": "boolean",
             "format": "boolean"
+          },
+          {
+            "name": "vcsType",
+            "description": "vcsType is the vcs sub cred type that is associated with the acct/repo you wish to build.\n GITHUB|BITBUCKET. If this is not passed in a build request then the credentials table will be checked\n to see if there is only one account with that name to infer subcredtype from. If there is more than one\n account with different subcredtypes, then an error will be returned to and it will be required to pass this\n field.\n\n - BITBUCKET: / VCS ///\n - NEXUS: / REPO ///\n - KUBECONF: / K8S ///\n - SSHKEY: / SSH ///\n - SLACK: / NOTIFY ///\n - DEVPROFILE: / APPLE ///\n - ENV: / GENERIC ///",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "NIL_SCT",
+              "BITBUCKET",
+              "GITHUB",
+              "NEXUS",
+              "MAVEN",
+              "DOCKER",
+              "MINIO",
+              "KUBECONF",
+              "SSHKEY",
+              "SLACK",
+              "DEVPROFILE",
+              "ENV",
+              "HELM_REPO"
+            ],
+            "default": "NIL_SCT"
           }
         ],
         "tags": [
@@ -1708,11 +1831,16 @@
       "properties": {
         "account": {
           "type": "string",
-          "title": "VCS Account"
+          "title": "account is VCS Account"
         },
         "repo": {
           "type": "string",
-          "title": "VCS Repository"
+          "title": "repo is the VCS Repository"
+        },
+        "lastQueue": {
+          "type": "string",
+          "format": "date-time",
+          "title": "lastqueue last time build was queued"
         }
       },
       "title": "Used in displaying all repos that are tracked by ocelot"
@@ -1765,6 +1893,11 @@
         "subType": {
           "$ref": "#/definitions/modelsSubCredType",
           "title": "@inject_tag: yaml:\"subType\""
+        },
+        "id": {
+          "type": "string",
+          "format": "int64",
+          "title": "id is credentials id from database"
         }
       }
     },
@@ -1798,6 +1931,10 @@
           "type": "boolean",
           "format": "boolean",
           "title": "force is a flag that says to build even if it doesn't match the acceptable branches list and even if there is a \"skip\" ci message"
+        },
+        "vcsType": {
+          "$ref": "#/definitions/modelsSubCredType",
+          "title": "vcsType is the vcs sub cred type that is associated with the acct/repo you wish to build.\n GITHUB|BITBUCKET. If this is not passed in a build request then the credentials table will be checked\n to see if there is only one account with that name to infer subcredtype from. If there is more than one\n account with different subcredtypes, then an error will be returned to and it will be required to pass this\n field"
         }
       }
     },
@@ -1938,7 +2075,7 @@
         },
         "subType": {
           "$ref": "#/definitions/modelsSubCredType",
-          "title": "There is currently only one subType that is valid for GenericCreds, and it is ENV"
+          "title": "Subtypes are ENV, HELM_REPO"
         },
         "identifier": {
           "type": "string",
@@ -1947,6 +2084,11 @@
         "clientSecret": {
           "type": "string",
           "title": "clientSecret is the secret associated with the integration cred"
+        },
+        "id": {
+          "type": "string",
+          "format": "int64",
+          "title": "id is credentials id from database"
         }
       }
     },
@@ -1979,6 +2121,11 @@
         "subType": {
           "$ref": "#/definitions/modelsSubCredType",
           "title": "@inject_tag: yaml:\"subType\"\nthere is currently only one subtype for k8SCreds, and it is KUBECONF"
+        },
+        "id": {
+          "type": "string",
+          "format": "int64",
+          "title": "id is credentials id from database"
         }
       }
     },
@@ -2019,6 +2166,15 @@
         "clientSecret": {
           "type": "string",
           "title": "clientSecret is the secret associated with the integration cred"
+        },
+        "detailUrlBase": {
+          "type": "string",
+          "title": "detailUrlBase is the base url for an ocelot ui. when building the notification, will\n  add {{detailUrlBase}}/repos/{{account}}/{{repo}}/{{buildId}}"
+        },
+        "id": {
+          "type": "string",
+          "format": "int64",
+          "title": "id is credentials id from database"
         }
       }
     },
@@ -2051,6 +2207,10 @@
         "branches": {
           "type": "string",
           "title": "branches tells ocelot which branches should be checked for changes"
+        },
+        "type": {
+          "$ref": "#/definitions/modelsSubCredType",
+          "title": "type is the vcs subcredtype, ie github|bitbucket"
         },
         "lastCronTime": {
           "type": "string",
@@ -2094,6 +2254,10 @@
           "type": "integer",
           "format": "int32",
           "title": "limit is the number of summary records desired to be returned"
+        },
+        "type": {
+          "$ref": "#/definitions/modelsSubCredType",
+          "title": "type is the vcs type fo the account and repo"
         }
       }
     },
@@ -2135,6 +2299,11 @@
         "subType": {
           "$ref": "#/definitions/modelsSubCredType",
           "title": "@inject_tag: yaml:\"subType\"\nthere are two subtypes that are valid for RepoCreds: DOCKER, NEXUS"
+        },
+        "id": {
+          "type": "string",
+          "format": "int64",
+          "title": "id is credentials id from database"
         }
       }
     },
@@ -2157,6 +2326,11 @@
         "identifier": {
           "type": "string",
           "description": "identifier is the unique identifier for when an ssh key is not associated with a VCS account."
+        },
+        "id": {
+          "type": "string",
+          "format": "int64",
+          "title": "id is credentials id from database"
         }
       }
     },
@@ -2241,7 +2415,8 @@
         "SSHKEY",
         "SLACK",
         "DEVPROFILE",
-        "ENV"
+        "ENV",
+        "HELM_REPO"
       ],
       "default": "NIL_SCT",
       "title": "- BITBUCKET: / VCS ///\n - NEXUS: / REPO ///\n - KUBECONF: / K8S ///\n - SSHKEY: / SSH ///\n - SLACK: / NOTIFY ///\n - DEVPROFILE: / APPLE ///\n - ENV: / GENERIC ///"
@@ -2288,6 +2463,11 @@
         "subType": {
           "$ref": "#/definitions/modelsSubCredType",
           "title": "there is only one subtype that is valid for VCS creds at this time, and it is BITBUCKET\n@inject_tag: yaml:\"subType\""
+        },
+        "id": {
+          "type": "string",
+          "format": "int64",
+          "title": "id is credentials id from database"
         }
       }
     },

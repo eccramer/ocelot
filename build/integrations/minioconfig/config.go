@@ -1,3 +1,9 @@
+/*
+  minioconfig is an implementation of the StringIntegrator interface
+
+	minioconfig's methods will use all minio repo credentials and generate a mc-compatible config.json. builds can then use the mc minio client
+	to access the object store without any additional configuration
+*/
 package minioconfig
 
 import (
@@ -34,7 +40,7 @@ func (m *minioConf) GenerateIntegrationString(credz []pb.OcyCredder) (string, er
 	return configEncoded, err
 }
 
-func (m *minioConf) MakeBashable(encoded string) []string{
+func (m *minioConf) MakeBashable(encoded string) []string {
 	return []string{"/bin/sh", "-c", "mkdir -p ~/.mc && echo \"${MCONF}\" | base64 -d > ~/.mc/config.json"}
 }
 
@@ -58,11 +64,11 @@ func rcToMinioConf(creds []pb.OcyCredder) ([]byte, error) {
 			continue
 		}
 		mConfEntry := &minioConfigEntry{
-			Url: 		mCred.RepoUrl,
-			AccessKey:  mCred.Username,
-			SecretKey:  mCred.Password,
-			Api: 		defaultApi,
-			Lookup: 	defaultLookup,
+			Url:       mCred.RepoUrl,
+			AccessKey: mCred.Username,
+			SecretKey: mCred.Password,
+			Api:       defaultApi,
+			Lookup:    defaultLookup,
 		}
 		conf.Hosts[mCred.Identifier] = mConfEntry
 	}

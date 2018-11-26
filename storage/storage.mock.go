@@ -283,6 +283,19 @@ func (mr *MockBuildSumMockRecorder) GetTrackedRepos() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTrackedRepos", reflect.TypeOf((*MockBuildSum)(nil).GetTrackedRepos))
 }
 
+// GetLastSuccessfulBuildHash mocks base method
+func (m *MockBuildSum) GetLastSuccessfulBuildHash(account, repo, branch string) (string, error) {
+	ret := m.ctrl.Call(m, "GetLastSuccessfulBuildHash", account, repo, branch)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetLastSuccessfulBuildHash indicates an expected call of GetLastSuccessfulBuildHash
+func (mr *MockBuildSumMockRecorder) GetLastSuccessfulBuildHash(account, repo, branch interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLastSuccessfulBuildHash", reflect.TypeOf((*MockBuildSum)(nil).GetLastSuccessfulBuildHash), account, repo, branch)
+}
+
 // MockBuildStage is a mock of BuildStage interface
 type MockBuildStage struct {
 	ctrl     *gomock.Controller
@@ -355,15 +368,15 @@ func (m *MockPollTable) EXPECT() *MockPollTableMockRecorder {
 }
 
 // InsertPoll mocks base method
-func (m *MockPollTable) InsertPoll(account, repo, cronString, branches string) error {
-	ret := m.ctrl.Call(m, "InsertPoll", account, repo, cronString, branches)
+func (m *MockPollTable) InsertPoll(account, repo, cronString, branches string, credsId int64) error {
+	ret := m.ctrl.Call(m, "InsertPoll", account, repo, cronString, branches, credsId)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // InsertPoll indicates an expected call of InsertPoll
-func (mr *MockPollTableMockRecorder) InsertPoll(account, repo, cronString, branches interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertPoll", reflect.TypeOf((*MockPollTable)(nil).InsertPoll), account, repo, cronString, branches)
+func (mr *MockPollTableMockRecorder) InsertPoll(account, repo, cronString, branches, credsId interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertPoll", reflect.TypeOf((*MockPollTable)(nil).InsertPoll), account, repo, cronString, branches, credsId)
 }
 
 // UpdatePoll mocks base method
@@ -418,9 +431,9 @@ func (mr *MockPollTableMockRecorder) PollExists(account, repo interface{}) *gomo
 }
 
 // GetAllPolls mocks base method
-func (m *MockPollTable) GetAllPolls() ([]*models.PollRequest, error) {
+func (m *MockPollTable) GetAllPolls() ([]*pb.PollRequest, error) {
 	ret := m.ctrl.Call(m, "GetAllPolls")
-	ret0, _ := ret[0].([]*models.PollRequest)
+	ret0, _ := ret[0].([]*pb.PollRequest)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -564,6 +577,19 @@ func (m *MockCredTable) DeleteCred(credder pb.OcyCredder) error {
 // DeleteCred indicates an expected call of DeleteCred
 func (mr *MockCredTableMockRecorder) DeleteCred(credder interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteCred", reflect.TypeOf((*MockCredTable)(nil).DeleteCred), credder)
+}
+
+// GetVCSTypeFromAccount mocks base method
+func (m *MockCredTable) GetVCSTypeFromAccount(account string) (pb.SubCredType, error) {
+	ret := m.ctrl.Call(m, "GetVCSTypeFromAccount", account)
+	ret0, _ := ret[0].(pb.SubCredType)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetVCSTypeFromAccount indicates an expected call of GetVCSTypeFromAccount
+func (mr *MockCredTableMockRecorder) GetVCSTypeFromAccount(account interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVCSTypeFromAccount", reflect.TypeOf((*MockCredTable)(nil).GetVCSTypeFromAccount), account)
 }
 
 // MockHealthyChkr is a mock of HealthyChkr interface
@@ -814,6 +840,19 @@ func (mr *MockOcelotStorageMockRecorder) GetTrackedRepos() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTrackedRepos", reflect.TypeOf((*MockOcelotStorage)(nil).GetTrackedRepos))
 }
 
+// GetLastSuccessfulBuildHash mocks base method
+func (m *MockOcelotStorage) GetLastSuccessfulBuildHash(account, repo, branch string) (string, error) {
+	ret := m.ctrl.Call(m, "GetLastSuccessfulBuildHash", account, repo, branch)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetLastSuccessfulBuildHash indicates an expected call of GetLastSuccessfulBuildHash
+func (mr *MockOcelotStorageMockRecorder) GetLastSuccessfulBuildHash(account, repo, branch interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLastSuccessfulBuildHash", reflect.TypeOf((*MockOcelotStorage)(nil).GetLastSuccessfulBuildHash), account, repo, branch)
+}
+
 // AddStageDetail mocks base method
 func (m *MockOcelotStorage) AddStageDetail(stageResult *models.StageResult) error {
 	ret := m.ctrl.Call(m, "AddStageDetail", stageResult)
@@ -852,15 +891,15 @@ func (mr *MockOcelotStorageMockRecorder) StorageType() *gomock.Call {
 }
 
 // InsertPoll mocks base method
-func (m *MockOcelotStorage) InsertPoll(account, repo, cronString, branches string) error {
-	ret := m.ctrl.Call(m, "InsertPoll", account, repo, cronString, branches)
+func (m *MockOcelotStorage) InsertPoll(account, repo, cronString, branches string, credsId int64) error {
+	ret := m.ctrl.Call(m, "InsertPoll", account, repo, cronString, branches, credsId)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // InsertPoll indicates an expected call of InsertPoll
-func (mr *MockOcelotStorageMockRecorder) InsertPoll(account, repo, cronString, branches interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertPoll", reflect.TypeOf((*MockOcelotStorage)(nil).InsertPoll), account, repo, cronString, branches)
+func (mr *MockOcelotStorageMockRecorder) InsertPoll(account, repo, cronString, branches, credsId interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertPoll", reflect.TypeOf((*MockOcelotStorage)(nil).InsertPoll), account, repo, cronString, branches, credsId)
 }
 
 // UpdatePoll mocks base method
@@ -915,9 +954,9 @@ func (mr *MockOcelotStorageMockRecorder) PollExists(account, repo interface{}) *
 }
 
 // GetAllPolls mocks base method
-func (m *MockOcelotStorage) GetAllPolls() ([]*models.PollRequest, error) {
+func (m *MockOcelotStorage) GetAllPolls() ([]*pb.PollRequest, error) {
 	ret := m.ctrl.Call(m, "GetAllPolls")
-	ret0, _ := ret[0].([]*models.PollRequest)
+	ret0, _ := ret[0].([]*pb.PollRequest)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1038,6 +1077,19 @@ func (m *MockOcelotStorage) DeleteCred(credder pb.OcyCredder) error {
 // DeleteCred indicates an expected call of DeleteCred
 func (mr *MockOcelotStorageMockRecorder) DeleteCred(credder interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteCred", reflect.TypeOf((*MockOcelotStorage)(nil).DeleteCred), credder)
+}
+
+// GetVCSTypeFromAccount mocks base method
+func (m *MockOcelotStorage) GetVCSTypeFromAccount(account string) (pb.SubCredType, error) {
+	ret := m.ctrl.Call(m, "GetVCSTypeFromAccount", account)
+	ret0, _ := ret[0].(pb.SubCredType)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetVCSTypeFromAccount indicates an expected call of GetVCSTypeFromAccount
+func (mr *MockOcelotStorageMockRecorder) GetVCSTypeFromAccount(account interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVCSTypeFromAccount", reflect.TypeOf((*MockOcelotStorage)(nil).GetVCSTypeFromAccount), account)
 }
 
 // Healthy mocks base method

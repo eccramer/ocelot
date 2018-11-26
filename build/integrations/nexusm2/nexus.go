@@ -1,12 +1,20 @@
+/*
+  nexusm2 is a implementation of the StringIntegrator interface
+
+	nexusm2's methods will use all nexus credentials to generate a .m2/settings.xml file with a collection of server blocks.
+	The server will have an id of the credential Identifier field, with the credential's username and password. every nexus credentail
+	will create a new <server> block. the default repository in the settings.xml file will also be set, with the url pointing to the
+	environment variable NEXUS_PUBLIC_M2
+*/
 package nexusm2
 
 import (
-    "github.com/shankj3/ocelot/build/integrations"
-    "github.com/shankj3/ocelot/models/pb"
+	"github.com/shankj3/ocelot/build/integrations"
+	"github.com/shankj3/ocelot/models/pb"
 
-    "bytes"
-    "errors"
-    "text/template"
+	"bytes"
+	"errors"
+	"text/template"
 )
 
 var settingsXml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -44,15 +52,15 @@ type NexusInt struct {
 }
 
 func (n *NexusInt) String() string {
-    return "nexus m2 settings.xml render"
+	return "nexus m2 settings.xml render"
 }
 
 func (n *NexusInt) SubType() pb.SubCredType {
-    return pb.SubCredType_NEXUS
+	return pb.SubCredType_NEXUS
 }
 
 func Create() integrations.StringIntegrator {
-    return &NexusInt{}
+	return &NexusInt{}
 }
 
 func (n *NexusInt) GetEnv() []string {
@@ -68,7 +76,7 @@ func (n *NexusInt) GenerateIntegrationString(credz []pb.OcyCredder) (string, err
 		}
 		repoCreds = append(repoCreds, credx)
 	}
-	wrap := &pb.RepoCredWrapper{Repo:repoCreds}
+	wrap := &pb.RepoCredWrapper{Repo: repoCreds}
 	rendered, err := executeTempl(wrap)
 	if err == nil {
 		n.settingsXml = rendered
@@ -81,22 +89,22 @@ func (n *NexusInt) MakeBashable(xml string) []string {
 }
 
 func (n *NexusInt) IsRelevant(wc *pb.BuildConfig) bool {
-    if wc.GetBuildTool() == "maven" {
-        return true
-    }
-    return false
+	if wc.GetBuildTool() == "maven" {
+		return true
+	}
+	return false
 }
 
 func executeTempl(wrap *pb.RepoCredWrapper) (string, error) {
-    templ, err := template.New("settingsxml").Parse(settingsXml)
-    if err != nil {
-        return "", err
-    }
-    var settings bytes.Buffer
-    err = templ.Execute(&settings, wrap)
-    if err != nil {
-        return "", errors.New("unable to render settings.xml template for nexus credentials. error: " + err.Error())
-    }
-    return settings.String(), nil
+	templ, err := template.New("settingsxml").Parse(settingsXml)
+	if err != nil {
+		return "", err
+	}
+	var settings bytes.Buffer
+	err = templ.Execute(&settings, wrap)
+	if err != nil {
+		return "", errors.New("unable to render settings.xml template for nexus credentials. error: " + err.Error())
+	}
+	return settings.String(), nil
 
 }

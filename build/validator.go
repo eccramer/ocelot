@@ -1,13 +1,14 @@
 package build
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"strings"
 
 	"github.com/mitchellh/cli"
+	"github.com/pkg/errors"
 	"github.com/shankj3/ocelot/common/helpers/dockrhelper"
+	"github.com/shankj3/ocelot/common/trigger"
 	"github.com/shankj3/ocelot/models"
 	"github.com/shankj3/ocelot/models/pb"
 )
@@ -18,7 +19,6 @@ type OcelotValidator struct{}
 func GetOcelotValidator() *OcelotValidator {
 	return &OcelotValidator{}
 }
-
 
 //validates config, takes in an optional cli out
 func (ov *OcelotValidator) ValidateConfig(config *pb.BuildConfig, UI cli.Ui) error {
@@ -32,21 +32,46 @@ func (ov *OcelotValidator) ValidateConfig(config *pb.BuildConfig, UI cli.Ui) err
 	if len(config.BuildTool) == 0 {
 		return errors.New("BuildTool must be specified")
 	}
-	writeUIInfo(UI, "BuildTool is specified " + models.CHECKMARK)
+	writeUIInfo(UI, "BuildTool is specified "+models.CHECKMARK)
 
-	if len(config.Stages) == 0 {
-		return errors.New("there must be at least one stage listed")
-	}
-	// todo: add in checking if any machines match machinetag 
+	// todo: add in checking if any machines match machinetag
 	if config.Image != "" {
 		writeUIInfo(UI, "Connecting to docker to check for image validity...")
 		var out io.ReadCloser
 		out, err = dockrhelper.RobustImagePull(config.Image)
-		defer func(){if out != nil {out.Close()}}()
+		defer func() {
+			if out != nil {
+				out.Close()
+			}
+		}()
 		if err != nil {
-			writeUIError(UI, config.Image + " does not exist or credentials cannot be found")
+			writeUIError(UI, config.Image+" does not exist or credentials cannot be found")
 		} else {
-			writeUIInfo(UI, config.Image + " exists " + models.CHECKMARK)
+			writeUIInfo(UI, config.Image+" exists "+models.CHECKMARK)
+		}
+	}
+
+	if len(config.Stages) == 0 {
+		return errors.New("there must be at least one stage listed")
+	}
+	for ind, stage := range config.Stages {
+		if ind == 0 {
+			writeUIInfo(UI, "Validating stages... ")
+		}
+		writeUIInfo(UI, "  " + stage.Name)
+		if len(stage.Script) == 0 {
+			return errors.New("Script for stage " + stage.Name + "should not be empty")
+		}
+		for ind, triggy := range stage.Triggers {
+			if ind == 0 {
+				writeUIInfo(UI, "    Validating trigger strings...")
+			}
+			_, err := trigger.Parse(triggy)
+			if err != nil {
+				writeUIError(UI, fmt.Sprintf("      - %s %s", triggy, models.FAILED))
+				return errors.Wrap(err, "'triggers' conditions must follow spec, this one did not: " + triggy)
+			}
+			writeUIInfo(UI, fmt.Sprintf("      - %s %s", triggy, models.CHECKMARK))
 		}
 	}
 	return err
@@ -63,7 +88,8 @@ func (ov *OcelotValidator) ValidateViability(branch string, buildBranches []stri
 		return nil
 	}
 	// next, check if branch has a regex match with any of the buildable branches
-	branchOk, err := BranchRegexOk(branch, buildBranches)
+	branchOk, err := trigger.BranchRegexOk(branch, buildBranches)
+
 	if err != nil {
 		return err
 	}
@@ -85,7 +111,7 @@ func (ov *OcelotValidator) ValidateViability(branch string, buildBranches []stri
 }
 
 func (ov *OcelotValidator) ValidateBranchAgainstConf(buildConf *pb.BuildConfig, branch string) error {
-	branchOk, err := BranchRegexOk(branch, buildConf.Branches)
+	branchOk, err := trigger.BranchRegexOk(branch, buildConf.Branches)
 	if err != nil {
 		return err
 	}
@@ -95,12 +121,11 @@ func (ov *OcelotValidator) ValidateBranchAgainstConf(buildConf *pb.BuildConfig, 
 	return nil
 }
 
-
 // NotViable is an error that means that this commit should not be queued for a build
 type NotViable struct {
-	branch string
+	branch  string
 	commits []string
-	msg string
+	msg     string
 }
 
 func (dq *NotViable) Error() string {
@@ -109,9 +134,8 @@ func (dq *NotViable) Error() string {
 
 // NoViability will return a NotViable error, signaling it won't be queued and shouldn't be stored
 func NoViability(msg string) *NotViable {
-	return &NotViable{msg:msg}
+	return &NotViable{msg: msg}
 }
-
 
 func writeUIInfo(ui cli.Ui, msg string) {
 	if ui != nil {

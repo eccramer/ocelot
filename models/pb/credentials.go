@@ -2,10 +2,11 @@ package pb
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"regexp"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 const ENV_SAFE = "^[a-zA-Z_]+$"
@@ -21,6 +22,7 @@ type OcyCredder interface {
 	GetSubType() SubCredType
 	SetSubType(sct SubCredType)
 	ValidateForInsert() *ValidationErr
+	GetId() int64
 }
 
 func Invalidate(reason string) *ValidationErr {
@@ -50,7 +52,6 @@ func (m *RepoCreds) SetSecret(secret string) {
 func (m *RepoCreds) GetClientSecret() string {
 	return m.Password
 }
-
 
 func (m *RepoCreds) CreateAdditionalFields() ([]byte, error) {
 	fields := make(map[string]string)
@@ -89,11 +90,9 @@ func (m *RepoCreds) ValidateForInsert() *ValidationErr {
 	return nil
 }
 
-
 func NewVCSCreds() *VCSCreds {
 	return &VCSCreds{}
 }
-
 
 func (m *VCSCreds) CreateAdditionalFields() ([]byte, error) {
 	fields := make(map[string]string)
@@ -118,7 +117,6 @@ func (m *VCSCreds) UnmarshalAdditionalFields(fields []byte) error {
 	return nil
 }
 
-
 func (m *VCSCreds) SetSubType(sct SubCredType) {
 	m.SubType = sct
 }
@@ -139,15 +137,14 @@ func (m *VCSCreds) ValidateForInsert() *ValidationErr {
 	if m.ClientId == "" {
 		errr = append(errr, "oauth client id is required")
 	}
-	if m.TokenURL == "" {
-		errr = append(errr, "oauth token url is required")
-	}
+	//if m.TokenURL == "" {
+	//	errr = append(errr, "oauth token url is required")
+	//}
 	if len(errr) != 0 {
 		return Invalidate(strings.Join(errr, "\n"))
 	}
 	return nil
 }
-
 
 func NewK8sCreds() *K8SCreds {
 	return &K8SCreds{}
@@ -156,7 +153,6 @@ func NewK8sCreds() *K8SCreds {
 func (m *K8SCreds) GetClientSecret() string {
 	return m.K8SContents
 }
-
 
 func (m *K8SCreds) SetSubType(sct SubCredType) {
 	m.SubType = sct
@@ -171,7 +167,6 @@ func (m *K8SCreds) SetSecret(str string) {
 	m.K8SContents = str
 }
 
-
 func (m *K8SCreds) CreateAdditionalFields() ([]byte, error) {
 	return []byte("{}"), nil
 }
@@ -179,7 +174,6 @@ func (m *K8SCreds) CreateAdditionalFields() ([]byte, error) {
 func (m *K8SCreds) UnmarshalAdditionalFields(fields []byte) error {
 	return nil
 }
-
 
 func (m *K8SCreds) ValidateForInsert() *ValidationErr {
 	errr := validateCommonFieldsForInsert(m)
@@ -192,7 +186,6 @@ func (m *K8SCreds) ValidateForInsert() *ValidationErr {
 func (m *SSHKeyWrapper) GetClientSecret() string {
 	return string(m.PrivateKey)
 }
-
 
 func (m *SSHKeyWrapper) SetSubType(sct SubCredType) {
 	m.SubType = sct
@@ -232,7 +225,6 @@ func (m *AppleCreds) CreateAdditionalFields() ([]byte, error) {
 	return []byte("{}"), nil
 }
 
-
 func (m *AppleCreds) SetSubType(sct SubCredType) {
 	m.SubType = sct
 }
@@ -258,10 +250,19 @@ func (m *NotifyCreds) ValidateForInsert() *ValidationErr {
 }
 
 func (m *NotifyCreds) CreateAdditionalFields() ([]byte, error) {
-	return []byte("{}"), nil
+	addtlFields := map[string]string{"detailUrlBase": m.DetailUrlBase}
+	return json.Marshal(addtlFields)
 }
 
 func (m *NotifyCreds) UnmarshalAdditionalFields(fields []byte) error {
+	unmarshaled := make(map[string]string)
+	if err := json.Unmarshal(fields, &unmarshaled); err != nil {
+		return err
+	}
+	var ok bool
+	if m.DetailUrlBase, ok = unmarshaled["detailUrlBase"]; !ok {
+		// todo: log that this wasn't found
+	}
 	return nil
 }
 
@@ -290,12 +291,14 @@ func (m *GenericCreds) ValidateForInsert() *ValidationErr {
 	if len(errr) != 0 {
 		return Invalidate(strings.Join(errr, "\n"))
 	}
-	re, err := regexp.Compile(ENV_SAFE)
-	if err != nil {
-		return Invalidate("Unable to compile regex, error is: " + err.Error())
-	}
-	if !re.MatchString(m.GetIdentifier()) {
-		return Invalidate(fmt.Sprintf("Identifier for credential must be environment variable safe, ie it must match the regex pattern %s. Your credential Identifier, %s, does not.", ENV_SAFE, m.GetIdentifier()))
+	if m.SubType == SubCredType_ENV {
+		re, err := regexp.Compile(ENV_SAFE)
+		if err != nil {
+			return Invalidate("Unable to compile regex, error is: " + err.Error())
+		}
+		if !re.MatchString(m.GetIdentifier()) {
+			return Invalidate(fmt.Sprintf("Identifier for credential must be environment variable safe, ie it must match the regex pattern %s. Your credential Identifier, %s, does not.", ENV_SAFE, m.GetIdentifier()))
+		}
 	}
 	return nil
 }
@@ -303,7 +306,6 @@ func (m *GenericCreds) ValidateForInsert() *ValidationErr {
 func (m *GenericCreds) SetSubType(sct SubCredType) {
 	m.SubType = sct
 }
-
 
 func validateCommonFieldsForInsert(credder OcyCredder) (errors []string) {
 	if credder.GetIdentifier() == "" {
@@ -326,7 +328,6 @@ func validateCommonFieldsForInsert(credder OcyCredder) (errors []string) {
 	return
 }
 
-
 // wrapper interface around models.BuildRuntimeInfo
 type BuildRuntime interface {
 	GetDone() bool
@@ -336,15 +337,14 @@ type BuildRuntime interface {
 	CreateBuildClient() (BuildClient, error)
 }
 
-
 var (
-	vcsSubTypes   = []SubCredType{SubCredType_BITBUCKET, SubCredType_GITHUB}
-	repoSubTypes  = []SubCredType{SubCredType_NEXUS, SubCredType_MAVEN, SubCredType_DOCKER, SubCredType_MINIO}
-	k8sSubTypes   = []SubCredType{SubCredType_KUBECONF}
-	sshSubTypes   = []SubCredType{SubCredType_SSHKEY}
-	appleSubTypes = []SubCredType{SubCredType_DEVPROFILE}
-	notifySubTypes = []SubCredType{SubCredType_SLACK}
-	genericSubTypes = []SubCredType{SubCredType_ENV}
+	vcsSubTypes     = []SubCredType{SubCredType_BITBUCKET, SubCredType_GITHUB}
+	repoSubTypes    = []SubCredType{SubCredType_NEXUS, SubCredType_MAVEN, SubCredType_DOCKER, SubCredType_MINIO}
+	k8sSubTypes     = []SubCredType{SubCredType_KUBECONF}
+	sshSubTypes     = []SubCredType{SubCredType_SSHKEY}
+	appleSubTypes   = []SubCredType{SubCredType_DEVPROFILE}
+	notifySubTypes  = []SubCredType{SubCredType_SLACK}
+	genericSubTypes = []SubCredType{SubCredType_ENV, SubCredType_HELM_REPO}
 )
 
 // Subtypes will return all the SubCredTypes that are associated with that CredType. Will return nil if it is unknown
@@ -372,28 +372,28 @@ func (x CredType) Subtypes() []SubCredType {
 func (x CredType) SubtypesString() []string {
 	var subtypes []string
 	for _, st := range x.Subtypes() {
-		 subtypes = append(subtypes, st.String())
+		subtypes = append(subtypes, st.String())
 	}
 	return subtypes
 }
 
-//SpawnCredStruct will instantiate an Cred object with account, identifier, subcredtype, and credtype
-func (x CredType) SpawnCredStruct(account, identifier string, subCredType SubCredType) OcyCredder {
+//SpawnCredStruct will instantiate an Cred object with account, identifier, subcredtype, subcredtype and credId
+func (x CredType) SpawnCredStruct(account, identifier string, subCredType SubCredType, credId int64) OcyCredder {
 	switch x {
 	case CredType_VCS:
-		return &VCSCreds{AcctName: account, Identifier: identifier, SubType: subCredType}
+		return &VCSCreds{AcctName: account, Identifier: identifier, SubType: subCredType, Id: credId}
 	case CredType_REPO:
-		return &RepoCreds{AcctName: account, Identifier: identifier, SubType: subCredType}
+		return &RepoCreds{AcctName: account, Identifier: identifier, SubType: subCredType, Id: credId}
 	case CredType_K8S:
-		return &K8SCreds{AcctName: account, Identifier: identifier, SubType: subCredType}
+		return &K8SCreds{AcctName: account, Identifier: identifier, SubType: subCredType, Id: credId}
 	case CredType_SSH:
-		return &SSHKeyWrapper{AcctName: account, Identifier: identifier, SubType:subCredType}
+		return &SSHKeyWrapper{AcctName: account, Identifier: identifier, SubType: subCredType, Id: credId}
 	case CredType_APPLE:
-		return &AppleCreds{AcctName: account, Identifier: identifier, SubType:subCredType}
+		return &AppleCreds{AcctName: account, Identifier: identifier, SubType: subCredType, Id: credId}
 	case CredType_NOTIFIER:
-		return &NotifyCreds{AcctName: account, Identifier: identifier, SubType: subCredType}
+		return &NotifyCreds{AcctName: account, Identifier: identifier, SubType: subCredType, Id: credId}
 	case CredType_GENERIC:
-		return &GenericCreds{AcctName:account, Identifier:identifier, SubType:subCredType}
+		return &GenericCreds{AcctName: account, Identifier: identifier, SubType: subCredType, Id: credId}
 	default:
 		return nil
 	}
@@ -463,10 +463,20 @@ func (i *SubCredType) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return err
 }
 
-func CreateVCSIdentifier(sct SubCredType, acctName string) (string, error){
+func CreateVCSIdentifier(sct SubCredType, acctName string) (string, error) {
 	if !Contains(sct, CredType_VCS.Subtypes()) {
 		return "", errors.New("must be of type CredType_VCS")
 	}
 	identifier := SubCredType_name[int32(sct)] + "_" + acctName
 	return identifier, nil
+}
+
+func VcsTypeStringToSubCredType(vcsType string) (SubCredType, error) {
+	typ, ok := SubCredType_value[strings.ToUpper(vcsType)]
+	sct := SubCredType(typ)
+	if !ok {
+
+		return sct, errors.Errorf("not a supported vcs type, must be one of: %s", strings.Join(CredType_VCS.SubtypesString(), " | "))
+	}
+	return sct, nil
 }

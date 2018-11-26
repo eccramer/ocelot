@@ -8,7 +8,7 @@ VAULT=1
 NSQ=1
 NSQTJ=0
 POSTGRES=1
-NEXUS=1
+NEXUS=0
 while [[ $# -gt 0 ]]
 do
 key="$1"
@@ -82,3 +82,4 @@ fi
 
 docker-compose${args[@]} up${follow[@]}
 # TODO: TJ has some stuff that will unseal vault for us! Perhaps it goes here?
+echo "done! if you started up a postgres database you should probably run the flyway migrate script in deploy/"

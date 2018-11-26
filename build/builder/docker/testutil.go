@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -30,7 +31,7 @@ func tarTemplates(t *testing.T) func(t *testing.T) {
 	werkertar := filepath.Join(filepath.Dir(dir), "werker_files.tar")
 	here, _ := ioutil.ReadDir(".")
 	fmt.Println(here)
-	cmd := exec.Command("/bin/sh", "-c", "tar -cvf " + werkertar + " *")
+	cmd := exec.Command("/bin/sh", "-c", "tar -cvf "+werkertar+" *")
 	cmd.Dir = template
 	var out, err bytes.Buffer
 	cmd.Stdout = &out
@@ -112,6 +113,7 @@ func CreateLivingDockerContainer(t *testing.T, ctx context.Context, imageName st
 	if err != nil {
 		t.Fatal("couldn't pull image, err: ", err.Error())
 	}
+	time.Sleep(1)
 	defer out.Close()
 	//todo: make sure to call this at some point
 	cleanupTar := tarTemplates(t)
@@ -124,11 +126,13 @@ func CreateLivingDockerContainer(t *testing.T, ctx context.Context, imageName st
 		AttachStdin:  true,
 		Tty:          true,
 	}
+	init := true
 	hostConfig := &container.HostConfig{
 		//TODO: have it be overridable via env variable
 		Binds: []string{"/var/run/docker.sock:/var/run/docker.sock"},
 		//Binds: []string{ homeDirectory + ":/.ocelot", "/var/run/docker.sock:/var/run/docker.sock"},
 		NetworkMode: "host",
+		Init: &init,
 	}
 	resp, err := cli.ContainerCreate(ctx, containerConfig, hostConfig, nil, "")
 	if err != nil {

@@ -18,7 +18,6 @@ import (
 	"github.com/shankj3/ocelot/storage"
 )
 
-
 var Buildfile = []byte(`image: golang:1.10.2-alpine3.7
 buildTool: go
 env: 
@@ -90,14 +89,13 @@ stages:
 `)
 
 func GetFakeSignaler(t *testing.T, inConsul bool) *Signaler {
-	cred := &credentials.RemoteConfig{Consul:&TestConsul{keyFound:inConsul}, Vault: &TestVault{}}
+	cred := &credentials.RemoteConfig{Consul: &TestConsul{keyFound: inConsul}, Vault: &TestVault{}}
 	dese := deserialize.New()
 	valid := &build.OcelotValidator{}
 	store := &TestStorage{}
 	produ := &TestSingleProducer{Done: make(chan int, 1)}
 	return NewSignaler(cred, dese, produ, valid, store)
 }
-
 
 type TestSingleProducer struct {
 	Message proto.Message
@@ -136,16 +134,16 @@ func (tc *TestConsul) GetKeyValue(string) (*api.KVPair, error) {
 type TestStorage struct {
 	storage.OcelotStorage
 	summary *pb.BuildSummary
-	stages []*models.StageResult
+	stages  []*models.StageResult
 }
 
 func (ts *TestStorage) AddSumStart(hash, account, repo, branch string) (int64, error) {
-	ts.summary = &pb.BuildSummary{Hash:hash, Account: account, Repo:repo, Branch:branch, BuildId: 12}
+	ts.summary = &pb.BuildSummary{Hash: hash, Account: account, Repo: repo, Branch: branch, BuildId: 12}
 	return 12, nil
 }
 
 func (ts *TestStorage) SetQueueTime(id int64) error {
-	ts.summary.QueueTime = &timestamp.Timestamp{Seconds:0,Nanos:0}
+	ts.summary.QueueTime = &timestamp.Timestamp{Seconds: 0, Nanos: 0}
 	return nil
 }
 
@@ -159,14 +157,16 @@ func (ts *TestStorage) AddStageDetail(result *models.StageResult) error {
 	return nil
 }
 
-
-
 type DummyVcsHandler struct {
 	Fail         bool
 	Filecontents []byte
+	ChangedFiles []string
+	ReturnCommit *pb.Commit
+	CommitNotFound bool
 	models.VCSHandler
-	NotFound     bool
+	NotFound bool
 }
+//fixme: need to add handler.GetChangedFiles and handler.GetCommit
 
 func (d *DummyVcsHandler) GetFile(filePath string, fullRepoName string, commitHash string) (bytez []byte, err error) {
 	if d.Fail {
@@ -178,4 +178,23 @@ func (d *DummyVcsHandler) GetFile(filePath string, fullRepoName string, commitHa
 	return d.Filecontents, nil
 }
 
+func (d *DummyVcsHandler) GetChangedFiles(acctRepo, latesthash, earliestHash string) ([]string, error) {
+	return d.ChangedFiles, nil
+}
 
+func (d *DummyVcsHandler) GetCommit(acctRepo, hash string) (*pb.Commit, error) {
+	if d.CommitNotFound {
+		return nil, errors.New("not found")
+	}
+	return d.ReturnCommit, nil
+}
+
+// set all flags to their default nil value
+func (d *DummyVcsHandler) Reset() {
+	d.Fail = false
+	d.Filecontents = []byte{}
+	d.ChangedFiles = []string{}
+	d.ReturnCommit = nil
+	d.CommitNotFound = false
+	d.NotFound = false
+}

@@ -55,11 +55,11 @@ type WerkerConf struct {
 	*models.WerkerFacts
 	WerkerName string
 	// list of tags for this build node
-	tags     []string
+	tags []string
 	//werkerProcessor builder.Processor
-	LogLevel        string
+	LogLevel string
 	//LoopBackIp      string
-	RemoteConfig    cred.CVRemoteConfig
+	RemoteConfig cred.CVRemoteConfig
 }
 
 // GetConf sets the configuration for the Werker. Its not thread safe, but that's
@@ -73,18 +73,23 @@ func GetConf() (*WerkerConf, error) {
 	var tags string
 
 	flrg := flag.NewFlagSet("werker", flag.ExitOnError)
-	flrg.StringVar(&werkerTypeStr, "type", defaultWerkerType, "type of werker, kubernetes|docker|ssh")
+	flrg.StringVar(&werkerTypeStr, "type", defaultWerkerType, "type of werker, exec|docker|ssh")
 	flrg.StringVar(&werker.WerkerName, "name", werkerName, "if wish to identify as other than hostname")
 	flrg.StringVar(&werker.ServicePort, "ws-port", defaultServicePort, "port to run websocket service on. default 9090")
 	flrg.StringVar(&werker.GrpcPort, "grpc-port", defaultGrpcPort, "port to run grpc server on. default 9099")
 	flrg.StringVar(&werker.LogLevel, "log-level", "info", "log level")
 	flrg.BoolVar(&werker.Dev, "dev", false, "run dev mode")
 	flrg.StringVar(&werker.RegisterIP, "register-ip", "localhost", "ip to register with consul when picking up builds")
-	flrg.StringVar(&werker.LoopbackIp, "loopback-ip", "172.17.0.1", "ip to use for spawned containers to successfully contact the host. " +
+	flrg.StringVar(&werker.LoopbackIp, "loopback-ip", "172.17.0.1", "ip to use for spawned containers to successfully contact the host. "+
 		"This may be different for different container systems / host machines. For example, when using docker for mac the loopback-ip would be docker.for.mac.localhost")
 	flrg.StringVar(&consuladdr, "consul-host", "localhost", "address of consul")
 	flrg.IntVar(&consulport, "consul-port", 8500, "port of consul")
 	flrg.StringVar(&tags, "tags", "", "comma separated list of tags for this build node")
+	// set flags for disk utility checks
+	flrg.StringVar(&werker.DiskUtilityHealthCheck.PauseThreshold, "disk-pause-threshold", "1G", "How much free disk can be left before the werker will error out and stop consuming messasges")
+	flrg.StringVar(&werker.DiskUtilityHealthCheck.Path, "disk-pause-path", "","Path at which to check for disk-pause-threshold")
+	// set flag for interval on which to run healthcheck
+	flrg.IntVar(&werker.HealthCheckInterval, "healthcheck-interval", 60, "Interval on which to make sure that remote config, storage system, and disk is not full")
 	// ssh werker configuration
 	werker.Ssh.SetFlags(flrg)
 	flrg.Parse(os.Args[1:])

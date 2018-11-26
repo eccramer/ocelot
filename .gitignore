@@ -29,3 +29,8 @@ ocelot*.tgz
 *.pb.go
 *.pb.gw.go
 models/pb/storage.swagger.json
+
+# Ignore Vagrant garbage
+*-console.log
+.vagrant/
+.vendor-new/

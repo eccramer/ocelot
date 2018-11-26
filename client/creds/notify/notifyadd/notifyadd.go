@@ -6,7 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"strings"
-	
+
 	"github.com/mitchellh/cli"
 	"github.com/shankj3/ocelot/client/commandhelper"
 	models "github.com/shankj3/ocelot/models/pb"
@@ -19,13 +19,14 @@ func New(ui cli.Ui) *cmd {
 }
 
 type cmd struct {
-	UI         	  cli.Ui
-	flags      	  *flag.FlagSet
-	notifyUrl  	  string
-	acctName   	  string
-	identifier 	  string
+	UI            cli.Ui
+	flags         *flag.FlagSet
+	notifyUrl     string
+	acctName      string
+	identifier    string
 	stringSubType string
-	config     	  *commandhelper.ClientConfig
+	baseUrl       string
+	config        *commandhelper.ClientConfig
 }
 
 func (c *cmd) GetClient() models.GuideOcelotClient {
@@ -48,6 +49,7 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.stringSubType, "type", "slack", "type of notify cred, currently only SLACK")
 	c.flags.StringVar(&c.acctName, "acctname", "ERROR", "account name to associate notify cred witth")
 	c.flags.StringVar(&c.identifier, "identifier", "ERROR", "unique identifier for this notify cred on this account")
+	c.flags.StringVar(&c.baseUrl, "detail-url", "", "[optional] base url for ocelot web ui")
 }
 
 // uploadCredential will check if credential already exists. if it does, it will ask if the user wishes to overwrite. if the user responds YES, the credential will be updated.
@@ -109,10 +111,11 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 	cred := &models.NotifyCreds{
-		AcctName:     c.acctName,
-		Identifier:   c.identifier,
-		SubType:      sct,
-		ClientSecret: c.notifyUrl,
+		AcctName:      c.acctName,
+		Identifier:    c.identifier,
+		SubType:       sct,
+		ClientSecret:  c.notifyUrl,
+		DetailUrlBase: c.baseUrl,
 	}
 	err = uploadCredential(ctx, c.GetClient(), c.UI, cred)
 	if err != nil {
@@ -132,7 +135,10 @@ func (c *cmd) Help() string {
 
 const synopsis = "Add notify credentials"
 const help = `
-Usage: ocelot creds notify add --identifier L11_SLACK --acctname level11consulting --url https://hooks.slack.com/services/T0DFsdSBA/345PPRP9C/5hUe12345v6BrxfSJt
+Usage: ocelot creds notify add --identifier L11_SLACK --acctname level11consulting --url https://hooks.slack.com/services/T0DFsdSBA/345PPRP9C/5hUe12345v6BrxfSJt --detail-url https://ocelot.mysite.io
+
+  The detail-url will be the domain for the ocelot frontend. It is optional, but if it is provided the notification will a link to the build information.
+	
   Currently only slack
 
   Example: using this notify credential in your ocelot.yml would look like this:
@@ -144,5 +150,3 @@ Usage: ocelot creds notify add --identifier L11_SLACK --acctname level11consulti
         - "PASS"
         - "FAIL"
 `
-
-

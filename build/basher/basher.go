@@ -11,7 +11,7 @@ import (
 )
 
 const DefaultBitbucketURL = "https://x-token-auth:%s@bitbucket.org/%s.git"
-const DefaultGithubURL = ""
+const DefaultGithubURL = "https://%s@github.com/%s.git"
 
 type Bashable func(string) []string
 
@@ -21,7 +21,7 @@ func NewBasher(downloadUrl, GHubDownloadUrl, LoopbackIP, dotOcelotPrefix string)
 		if string(dotOcelotPrefix[0]) != "/" {
 			return nil, errors.New("ocelot prefix must begin with a filepath separator")
 		}
-		if string(dotOcelotPrefix[len(dotOcelotPrefix) -1 ]) == "/" {
+		if string(dotOcelotPrefix[len(dotOcelotPrefix)-1]) == "/" {
 			dotOcelotPrefix = string(dotOcelotPrefix[(len(dotOcelotPrefix) - 1):])
 		}
 	}
@@ -79,7 +79,11 @@ func (b *Basher) DownloadCodebase(werk *pb.WerkerTask) []string {
 			downloadCmd = fmt.Sprintf("%s/bb_download.sh %s %s %s %s", b.OcelotDir(), werk.VcsToken, fmt.Sprintf(b.GetBbDownloadURL(), werk.VcsToken, werk.FullName), werk.CheckoutHash, b.CloneDir(werk.CheckoutHash))
 		}
 	case pb.SubCredType_GITHUB:
-		ocelog.Log().Error("not implemented")
+		if b.GetGithubDownloadURL() != DefaultGithubURL {
+			downloadCmd = fmt.Sprintf("%s/bb_download.sh %s %s %s %s", b.OcelotDir(), werk.VcsToken, b.GetGithubDownloadURL(), werk.CheckoutHash, b.CloneDir(werk.CheckoutHash))
+		} else {
+			downloadCmd = fmt.Sprintf("%s/bb_download.sh %s %s %s %s", b.OcelotDir(), werk.VcsToken, fmt.Sprintf(b.GetGithubDownloadURL(), werk.VcsToken, werk.FullName), werk.CheckoutHash, b.CloneDir(werk.CheckoutHash))
+		}
 	default:
 		ocelog.Log().Error("werker VCS type not recognized")
 	}
@@ -90,7 +94,7 @@ func (b *Basher) DownloadCodebase(werk *pb.WerkerTask) []string {
 
 //DownloadSSHKey will using the vault token to try to download the ssh key located at the path + `/ssh`
 func (b *Basher) DownloadSSHKey(vaultKey, vaultPath string) []string {
-	return []string{"/bin/sh", "-c", fmt.Sprintf("%s/get_ssh_key.sh %s %s", b.OcelotDir(), vaultKey, vaultPath + "/ssh")}
+	return []string{"/bin/sh", "-c", fmt.Sprintf("%s/get_ssh_key.sh %s %s", b.OcelotDir(), vaultKey, vaultPath+"/ssh")}
 }
 
 //DownloadTemplateFiles will download template files necessary to build containers from werker
@@ -119,8 +123,8 @@ func (b *Basher) DownloadKubectl(werkerPort string) []string {
 //CDAndRunCmds will cd into the root directory of the codebase and execute commands passed in
 func (b *Basher) CDAndRunCmds(cmds []string, commitHash string) []string {
 	cdCmd := fmt.Sprintf("cd %s", b.CloneDir(commitHash))
-	build := append([]string{cdCmd}, cmds...)
-	buildAndDeploy := append([]string{"/bin/sh", "-c", strings.Join(build, " && ")})
+	bild := append([]string{cdCmd}, cmds...)
+	buildAndDeploy := append([]string{"/bin/sh", "-c", strings.Join(bild, " && ")})
 	return buildAndDeploy
 }
 

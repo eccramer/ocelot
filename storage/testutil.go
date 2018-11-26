@@ -4,14 +4,15 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
-	"github.com/golang/protobuf/ptypes/timestamp"
-	"github.com/shankj3/ocelot/models/pb"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"testing"
 	"time"
+
+	"github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/shankj3/ocelot/models/pb"
 )
 
 func CreateTestFileSystemStorage(t *testing.T) BuildSum {
@@ -20,12 +21,12 @@ func CreateTestFileSystemStorage(t *testing.T) BuildSum {
 
 // create a test postgres database on port 5555 using the official docker image, create the tables, and insert some
 // seed data
-func insertDependentData(t *testing.T, pg *PostgresStorage) (int64) {
+func insertDependentData(t *testing.T, pg *PostgresStorage) int64 {
 	hash := "123"
 	model := &pb.BuildSummary{
 		Hash:          hash,
 		Failed:        false,
-		BuildTime:     &timestamp.Timestamp{Seconds:time.Now().Unix()},
+		BuildTime:     &timestamp.Timestamp{Seconds: time.Now().Unix()},
 		Account:       "testAccount",
 		BuildDuration: 23.232,
 		Repo:          "testRepo",
@@ -78,7 +79,7 @@ func CreateTestPgDatabase(t *testing.T, port int) (cleanup func(t *testing.T), p
 	}
 	//var containerId string
 	//containerId = strings.Trim(outbe.String(), "\n")
-	t.Log("successfully started up test pg database on port 5555")
+	t.Logf("successfully started up test pg database on port %d", port)
 	cleanup = func(t *testing.T) {
 		//createOrUpdateAuditFile(fmt.Sprintf("%s,delete", t.Name()))
 		t.Log("attempting to clean up db")

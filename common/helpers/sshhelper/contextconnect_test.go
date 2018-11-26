@@ -34,9 +34,9 @@ func Test_splitEnvs(t *testing.T) {
 
 // testing multiple facets of code with same docker container
 func TestContextConnection(t *testing.T) {
-	cleanup, ctx := CreateSSHDockerContainer(t, "2222")
+	cleanup, ctx := CreateSSHDockerContainer(t, "2227")
 	defer cleanup()
-	facts := &models.SSHFacts{User: "root", Host: "localhost", Port: 2222, KeyFP: "./test-fixtures/docker_id_rsa"}
+	facts := &models.SSHFacts{User: "root", Host: "localhost", Port: 2227, KeyFP: "./test-fixtures/docker_id_rsa"}
 	contextConnection_CheckConnection(t, ctx, facts)
 	contextConnection_RunAndLog(t, ctx, facts)
 	contextConnection_Setenvs(t, ctx, facts)
@@ -54,7 +54,6 @@ func contextConnection_CheckConnection(t *testing.T, ctx context.Context, facts 
 		return
 	}
 }
-
 
 func contextConnection_RunAndLog(t *testing.T, ctx context.Context, facts *models.SSHFacts) {
 	cnxn, err := CreateSSHChannel(ctx, facts, "")
@@ -80,7 +79,7 @@ func contextConnection_RunAndLog(t *testing.T, ctx context.Context, facts *model
 }
 
 //type StreamingFunc func(r io.Reader, logout chan[]byte, wg *sync.WaitGroup)
-func testPipeHandler(rc io.Reader, logout chan[]byte, wg *sync.WaitGroup) {
+func testPipeHandler(rc io.Reader, logout chan []byte, wg *sync.WaitGroup) {
 	defer wg.Done()
 	scanner := bufio.NewScanner(rc)
 	for scanner.Scan() {
@@ -88,7 +87,6 @@ func testPipeHandler(rc io.Reader, logout chan[]byte, wg *sync.WaitGroup) {
 		logout <- scanner.Bytes()
 	}
 }
-
 
 func contextConnection_Setenvs(t *testing.T, ctx context.Context, facts *models.SSHFacts) {
 	cnxn, err := CreateSSHChannel(ctx, facts, "")
@@ -99,7 +97,7 @@ func contextConnection_Setenvs(t *testing.T, ctx context.Context, facts *models.
 	defer cnxn.Close()
 	cnxn.SetGlobals([]string{"IVORYTRADE=BAD", "GIT_HASH=nd8sb29"})
 	logout := make(chan []byte, 1000)
-	if err = cnxn.RunAndLog("echo $RUNTIME && echo $IVORYTRADE && echo $GIT_HASH", []string{"RUNTIME=1", "LONG="+ SUPERLONGLINE}, logout, testPipeHandler); err != nil {
+	if err = cnxn.RunAndLog("echo $RUNTIME && echo $IVORYTRADE && echo $GIT_HASH", []string{"RUNTIME=1", "LONG=" + SUPERLONGLINE}, logout, testPipeHandler); err != nil {
 		t.Error(err)
 		return
 	}
@@ -122,10 +120,9 @@ func contextConnection_Setenvs(t *testing.T, ctx context.Context, facts *models.
 		t.Error(test.StrFormatErrors("GIT_HASH value", "nd8sb29", totallist[2]))
 	}
 
-
 }
 
-const SUPERLONGLINE=`jjjjjjjj=j=jjjjjjjjjjjjj=j=jjjjjjjjjjjjj=j=jjjjjjjjjjjjj=j=jjjjjjjjjjjjj=j=jjjjjjjjjjjjj=j
+const SUPERLONGLINE = `jjjjjjjj=j=jjjjjjjjjjjjj=j=jjjjjjjjjjjjj=j=jjjjjjjjjjjjj=j=jjjjjjjjjjjjj=j=jjjjjjjjjjjjj=j
 =jjjjjjjjjjjjj=j=jjjjjjjjjjjjj=j=jjjjjjj
 jjjjjj=j=jjjjjjjjjjjjj=j=jjjjjjjjjjjjj=j
 =jjjjjjjjjjjjj=j=jjjjjjjjjjjjj=j=jjjjjjjjjjjjj

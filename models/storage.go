@@ -15,7 +15,6 @@ var (
 	FAILED                 = "\u2717"
 )
 
-
 type BuildOutput struct {
 	BuildId  int64  `json:"buildId,omitempty"`
 	Output   []byte `json:"output,omitempty"`
@@ -112,13 +111,4 @@ func (f JsonStringMap) Scan(src interface{}) error {
 		return err
 	}
 	return nil
-}
-
-// mirrored from guide ocelot models :/ idk what to do about this
-type PollRequest struct {
-	Account  string    `protobuf:"bytes,1,opt,name=account" json:"account,omitempty"`
-	Repo     string    `protobuf:"bytes,2,opt,name=repo" json:"repo,omitempty"`
-	Cron     string    `protobuf:"bytes,4,opt,name=cron" json:"cron,omitempty"`
-	Branches string    `protobuf:"bytes,5,opt,name=branches" json:"branches,omitempty"`
-	LastCron time.Time `protobuf:"bytes,6,opt,name=lastCron" json:"lastCron,omitempty"`
 }

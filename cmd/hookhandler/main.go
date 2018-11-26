@@ -10,10 +10,13 @@ import (
 	"github.com/shankj3/go-til/nsqpb"
 	"github.com/shankj3/ocelot/build"
 	signal "github.com/shankj3/ocelot/build_signaler"
+	"github.com/shankj3/ocelot/build_signaler/webhook"
 	cred "github.com/shankj3/ocelot/common/credentials"
+	"github.com/shankj3/ocelot/models/pb"
 	hh "github.com/shankj3/ocelot/router/hookhandler"
 	"github.com/shankj3/ocelot/version"
 	"os"
+	"strings"
 )
 
 func main() {
@@ -43,7 +46,6 @@ func main() {
 		ocelog.Log().Fatal(err)
 	}
 
-
 	//mode := os.Getenv("ENV")
 	//if strings.EqualFold(mode, "dev") {
 	//	hookHandlerContext = &hh.MockHookHandlerContext{}
@@ -56,8 +58,7 @@ func main() {
 		ocelog.IncludeErrField(err).Fatal("couldn't get storage!")
 	}
 	signaler := &signal.Signaler{RC: remoteConfig, Deserializer: deserialize.New(), Producer: nsqpb.GetInitProducer(), OcyValidator: build.GetOcelotValidator(), Store: store}
-	teller := &signal.CCWerkerTeller{}
-	hookHandlerContext := hh.GetContext(signaler, teller)
+	hookHandlerContext := hh.GetContext(signaler, &signal.PushWerkerTeller{}, &webhook.PullReqWerkerTeller{})
 	defer store.Close()
 
 	startServer(hookHandlerContext, port)
@@ -67,7 +68,8 @@ func startServer(ctx *hh.HookHandlerContext, port string) {
 	muxi := mux.NewRouter()
 
 	// handleBBevent can take push/pull/ w/e
-	muxi.HandleFunc("/bitbucket", ctx.HandleBBEvent).Methods("POST")
+	muxi.HandleFunc("/" + strings.ToLower(pb.SubCredType_BITBUCKET.String()), ctx.HandleBBEvent).Methods("POST")
+	muxi.HandleFunc("/" + strings.ToLower(pb.SubCredType_GITHUB.String()), ctx.HandleGHEvent).Methods("POST")
 	muxi.Handle("/metrics", promhttp.Handler())
 	n := ocenet.InitNegroni("hookhandler", muxi)
 	n.Run(":" + port)

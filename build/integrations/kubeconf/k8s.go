@@ -1,9 +1,15 @@
+/*
+  kubeconf is an implementation of the StringIntegrator interface
+
+	Its methods will use all the the kubeconfig credentials to generate kubeconfig files in the ~/.kube directory
+*/
+
 package kubeconf
 
 import (
-	"fmt"
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/shankj3/ocelot/build/integrations"
 	"github.com/shankj3/ocelot/common"
 	"github.com/shankj3/ocelot/models/pb"
@@ -36,12 +42,10 @@ func (k *K8sInt) IsRelevant(wc *pb.BuildConfig) bool {
 	return true
 }
 
-// FIXME: The StringIntegrator interface should be refactored to support multiple instances
-// FIXME: For backwards compatibility, check if key is THERECANONLYBEONE, and use the name "config"
 func (k *K8sInt) GenerateIntegrationString(creds []pb.OcyCredder) (string, error) {
-  // Stuff creds into a map, and convert into json so we can pass it with some context for environment variables
+	// Stuff creds into a map, and convert into json so we can pass it with some context for environment variables
 	multiCreds := make(map[string]string)
-  for _, cluster := range creds {
+	for _, cluster := range creds {
 		multiCreds[cluster.GetIdentifier()] = cluster.GetClientSecret()
 	}
 	multiCredsJson, _ := json.Marshal(multiCreds)
@@ -57,7 +61,7 @@ func (k *K8sInt) GetEnv() []string {
 	configs := make(map[string]string)
 	json.Unmarshal([]byte(string(conf_json)), &configs)
 
-  	env_vars := make([]string, len(configs)+1)
+	env_vars := make([]string, len(configs)+1)
 	index := 0
 
 	var cluster_list bytes.Buffer
@@ -75,7 +79,7 @@ func (k *K8sInt) GetEnv() []string {
 		index++
 	}
 
-  // We will use K8S_INDEX to reference the kubeconfig environment vars in a bash loop
+	// We will use K8S_INDEX to reference the kubeconfig environment vars in a bash loop
 	env_vars[index] = fmt.Sprintf("%s=%s", "K8S_INDEX", cluster_list.String())
 	return env_vars
 }

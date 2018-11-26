@@ -7,6 +7,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	ocelog "github.com/shankj3/go-til/log"
+
 )
 
 var (
@@ -14,14 +15,6 @@ var (
 )
 
 func addHandlers(muxi *http.ServeMux, werkData *WerkerContext) {
-
-	//muxi.HandleFunc("/DUMP", werkStream.dumpData).Methods("GET")
-
-	//todo: don't think we are going this way anymore... delete?
-	//if we're in dev mode, serve everything out of test-fixtures at /dev
-	//if werkData.Dev {
-	//	muxi.PathPrefix("/dev/").Handler(http.StripPrefix("/dev/", http.FileServer(http.Dir("./dev"))))
-	//}
 	//serve up zip files that spawned containers need
 	muxi.HandleFunc("/do_things.tar", func(w http.ResponseWriter, r *http.Request) {
 		if werkData.Dev {
@@ -46,7 +39,7 @@ func addHandlers(muxi *http.ServeMux, werkData *WerkerContext) {
 	})
 	muxi.HandleFunc("/helm.tar.gz", func(w http.ResponseWriter, r *http.Request) {
 		ocelog.Log().Debug("serving up helm binary from googleapis")
-		http.Redirect(w, r, "https://storage.googleapis.com/kubernetes-helm/helm-v2.9.1-linux-amd64.tar.gz", 301)
+		http.Redirect(w, r, "https://storage.googleapis.com/kubernetes-helm/helm-v2.10.0-linux-amd64.tar.gz", 301)
 	})
 	muxi.HandleFunc("/mc", func(w http.ResponseWriter, r *http.Request) {
 		ocelog.Log().Debug("serving up mc binary")

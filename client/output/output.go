@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/mitchellh/cli"
 	"github.com/shankj3/ocelot/client/commandhelper"
-	bldr "github.com/shankj3/ocelot/common/build"
 	models "github.com/shankj3/ocelot/models/pb"
 	"io"
 )
@@ -114,7 +113,7 @@ func (c *cmd) Help() string {
 func (c *cmd) fromStorage(ctx context.Context, hash string, id int64) int {
 	var stream models.GuideOcelot_LogsClient
 	var err error
-	stream, err = c.config.Client.Logs(ctx, &models.BuildQuery{BuildId: id, Hash:hash})
+	stream, err = c.config.Client.Logs(ctx, &models.BuildQuery{BuildId: id, Hash: hash, Strip: c.config.Theme.NoColor})
 	if err != nil {
 		commandhelper.UIErrFromGrpc(err, c.UI, "Unable to get stream from admin.")
 		return 1
@@ -135,7 +134,7 @@ func (c *cmd) fromStorage(ctx context.Context, hash string, id int64) int {
 }
 
 func (c *cmd) fromWerker(ctx context.Context, build *models.BuildRuntimeInfo) int {
-	client, err := bldr.CreateBuildClient(build)
+	client, err := commandhelper.CreateBuildClient(build)
 	commandhelper.Debuggit(c.UI, fmt.Sprintf("dialing werker at %s:%s", build.GetIp(), build.GetGrpcPort()))
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error dialing the werker at %s:%s! Error: %s", build.GetIp(), build.GetGrpcPort(), err.Error()))

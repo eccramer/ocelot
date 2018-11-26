@@ -3,13 +3,13 @@ package launcher
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	ocelog "github.com/shankj3/go-til/log"
 	"github.com/shankj3/ocelot/build"
 	"github.com/shankj3/ocelot/build/integrations"
 	"github.com/shankj3/ocelot/build/integrations/dockerconfig"
 	"github.com/shankj3/ocelot/build/integrations/helm"
+	"github.com/shankj3/ocelot/build/integrations/helmrepo"
 	"github.com/shankj3/ocelot/build/integrations/kubeconf"
 	"github.com/shankj3/ocelot/build/integrations/kubectl"
 	"github.com/shankj3/ocelot/build/integrations/minio"
@@ -31,6 +31,7 @@ func getIntegrationList() []integrations.StringIntegrator {
 		nexusm2.Create(),
 		xcode.Create(),
 		minioconfig.Create(),
+		helmrepo.Create(),
 	}
 }
 
@@ -44,7 +45,12 @@ func getBinaryIntegList(loopbackHost, loopbackPort string) []integrations.Binary
 
 // doIntegrations will run all the integrations that (one day) are pertinent to the task at hand.
 func (w *launcher) doIntegrations(ctx context.Context, werk *pb.WerkerTask, bldr build.Builder, baseStage *build.StageUtil) (result *pb.Result) {
-	accountName := strings.Split(werk.FullName, "/")[0]
+	accountName, _, err := common.GetAcctRepo(werk.FullName)
+	if err != nil {
+		result.Status = pb.StageResultVal_FAIL
+		result.Error = err.Error()
+		return
+	}
 	result = &pb.Result{}
 	var integMessages []string
 	stage := build.CreateSubstage(baseStage, "INTEG")
@@ -86,11 +92,12 @@ func (w *launcher) doIntegrations(ctx context.Context, werk *pb.WerkerTask, bldr
 	}
 	// reset stage to integration_util
 	result.Stage = stage.GetStage()
-	result.Messages = append(integMessages, "completed integration util setup stage " + models.CHECKMARK)
+	result.Messages = append(integMessages, "completed integration util setup stage "+models.CHECKMARK)
 	return
 }
 
-// TODO: This should handle more than just kubectl. Helm, for example.
+// downloadBinaries runs all the binary integrations that are associated with this build. the binary integrations are defined by
+//  getBinaryIntegList.
 func (w *launcher) downloadBinaries(ctx context.Context, su *build.StageUtil, bldr build.Builder, wc *pb.BuildConfig) (result *pb.Result) {
 	var integMessages []string
 	result = &pb.Result{}
@@ -111,27 +118,26 @@ func (w *launcher) downloadBinaries(ctx context.Context, su *build.StageUtil, bl
 	}
 	// reset stage to download_binaries
 	result.Stage = su.GetStage()
-	result.Messages = append(integMessages, "completed download binaries setup stage " + models.CHECKMARK)
+	result.Messages = append(integMessages, "completed download binaries setup stage "+models.CHECKMARK)
 	return
 }
-
 
 func handleIntegrationErr(err error, integrationName string, stage *build.StageUtil, msgs []string) *pb.Result {
 	_, ok := err.(*common.NoCreds)
 	if !ok {
 		ocelog.IncludeErrField(err).Error("returning failed setup because repo integration failed for: ", integrationName)
 		return &pb.Result{
-			Stage: stage.GetStage(),
-			Status: pb.StageResultVal_FAIL,
-			Error: err.Error(),
+			Stage:    stage.GetStage(),
+			Status:   pb.StageResultVal_FAIL,
+			Error:    err.Error(),
 			Messages: append(msgs, fmt.Sprintf("integration failed for %s %s", integrationName, models.FAILED)),
 		}
 	} else {
 		msgs = append(msgs, fmt.Sprintf("no integration data for %s %s", integrationName, models.CHECKMARK))
 		return &pb.Result{
-			Stage: stage.GetStage(),
-			Status: pb.StageResultVal_PASS,
-			Error: "",
+			Stage:    stage.GetStage(),
+			Status:   pb.StageResultVal_PASS,
+			Error:    "",
 			Messages: msgs,
 		}
 	}

@@ -48,7 +48,7 @@ import (
 func listen(p *nsqpb.ProtoConsume, topic string, conf *WerkerConf, streamingChan chan *models.Transport, buildChan chan *models.BuildContext, bv *valet.Valet, store storage.OcelotStorage) {
 	for {
 		if !nsqpb.LookupTopic(p.Config.LookupDAddress(), topic) {
-			ocelog.Log().Info("i am about to sleep for 10s because i couldn't find the topic " + topic + " at ", p.Config.LookupDAddress())
+			ocelog.Log().Info("i am about to sleep for 10s because i couldn't find the topic "+topic+" at ", p.Config.LookupDAddress())
 			time.Sleep(10 * time.Second)
 		} else {
 			//mode := os.Getenv("ENV")
@@ -115,7 +115,7 @@ func main() {
 		go listen(protoConsume, topic, conf, streamingTunnel, buildCtxTunnel, buildValet, store)
 		protoConsumers = append(protoConsumers, protoConsume)
 	}
-	go nsqwatch.WatchAndPause(60, protoConsumers, conf.RemoteConfig, store) // todo: put interval in conf
+	go nsqwatch.WatchAndPause(int64(conf.HealthCheckInterval), protoConsumers, conf.RemoteConfig, store, conf.DiskUtilityHealthCheck)
 	go werker.ServeMe(streamingTunnel, conf.WerkerFacts, store, buildValet.ContextValet)
 	go buildValet.ListenBuilds(buildCtxTunnel, sync.Mutex{})
 	for _, consumer := range protoConsumers {

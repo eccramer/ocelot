@@ -34,6 +34,7 @@ message Push {
     Repo repo = 1;
     User user = 2;
     Commit headCommit = 4;
+    Commit previousHeadCommit = 6;
     repeated Commit commits = 3;
     string Branch = 5;
 }
@@ -66,4 +67,12 @@ message PrUrls {
 message PrWerkerData {
     PrUrls urls = 1;
     string prId = 2;
+}
+
+message Links {
+    string commits = 1;
+    string branches = 2;
+    string tags = 3;
+    string hooks = 4;
+    string pullrequests = 5;
 }

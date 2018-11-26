@@ -15,7 +15,6 @@ import (
 	"github.com/shankj3/ocelot/models"
 	"github.com/shankj3/ocelot/models/pb"
 	"github.com/shankj3/ocelot/storage"
-
 	"google.golang.org/grpc"
 )
 
@@ -66,6 +65,9 @@ func ServeMe(transportChan chan *models.Transport, conf *models.WerkerFacts, sto
 
 	go n.Run(":" + conf.ServicePort)
 	// now run the grpc server
-	go grpcServer.Serve(con)
-
+	go func(){
+		if err := grpcServer.Serve(con); err != nil {
+			ocelog.IncludeErrField(err).Fatal("unable to serve grpc")
+		}
+	}()
 }

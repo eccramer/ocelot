@@ -3,15 +3,15 @@ package delete
 import (
 	"bytes"
 	"context"
-	"testing"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/mitchellh/cli"
 	"github.com/shankj3/go-til/test"
 	"github.com/shankj3/ocelot/client/commandhelper"
-	"google.golang.org/grpc"
 	"github.com/shankj3/ocelot/models/pb"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"testing"
 )
 
 func TestCmd_Run(t *testing.T) {
@@ -38,7 +38,7 @@ func TestCmd_Run(t *testing.T) {
 
 	cmdd.credType = pb.CredType_GENERIC
 	ui.InputReader = bytes.NewBuffer([]byte("es"))
-	exitcode =cmdd.Run([]string{"-acct=12", "-identifier=123"})
+	exitcode = cmdd.Run([]string{"-acct=12", "-identifier=123", "-subtype=env"})
 	if exitcode != 0 {
 		t.Error("After cancelling out of delete confirmation, should return 0 exit code")
 	}
@@ -60,11 +60,11 @@ func TestCmd_Run(t *testing.T) {
 	// repo has multiple subtypes, should return error saying that you have to specify subtype
 	cmdd.credType = pb.CredType_REPO
 	ui.InputReader = bytes.NewBuffer([]byte("YES"))
-	exitcode =cmdd.Run([]string{"-acct=12", "-identifier=123"})
+	exitcode = cmdd.Run([]string{"-acct=12", "-identifier=123"})
 	if exitcode != 1 {
 		t.Error("should return 1 exit code as bad input ")
 	}
-	expectedOutput = "-subtype not provided and REPO has more than one subtype, please select NEXUS|MAVEN|DOCKER|MINIO\n"
+	expectedOutput = "Not the correct subtype for this credential (REPO). Please pick one of NEXUS|MAVEN|DOCKER|MINIO\n"
 	live := ui.ErrorWriter.String()
 	if expectedOutput != live {
 		t.Error(test.StrFormatErrors("error output", expectedOutput, live))
@@ -72,7 +72,7 @@ func TestCmd_Run(t *testing.T) {
 	// test w/ subtype
 	ui.ErrorWriter.Reset()
 
-	exitcode =cmdd.Run([]string{"-acct=12", "-identifier=123", "-subtype=MINIO"})
+	exitcode = cmdd.Run([]string{"-acct=12", "-identifier=123", "-subtype=MINIO"})
 	if exitcode != 0 {
 		t.Error("subtype was specified, this should pass")
 	}
@@ -81,7 +81,7 @@ func TestCmd_Run(t *testing.T) {
 	}
 	// test w/ bad subtype
 	ui.ErrorWriter.Reset()
-	exitcode =cmdd.Run([]string{"-acct=12", "-identifier=123", "-subtype=mini"})
+	exitcode = cmdd.Run([]string{"-acct=12", "-identifier=123", "-subtype=mini"})
 	if exitcode != 1 {
 		t.Error("should return error as bad subtype")
 	}
@@ -111,7 +111,7 @@ Available: NEXUS|MAVEN|DOCKER|MINIO
 	cmdd.init()
 	ui.ErrorWriter.Reset()
 	exitcode = cmdd.Run([]string{})
-	if ui.ErrorWriter.String() != "-acct was not provided\n"  {
+	if ui.ErrorWriter.String() != "-acct was not provided\n" {
 		t.Error(test.StrFormatErrors("no acct error", "-acct was not provided\n", ui.ErrorWriter.String()))
 	}
 
@@ -140,14 +140,14 @@ Available: NEXUS|MAVEN|DOCKER|MINIO
 
 type fakeCli struct {
 	pb.GuideOcelotClient
-	failConn    bool
-	fail        bool
-	fail404     bool
-	generics 	[]*pb.GenericCreds
-	notifiers 	[]*pb.NotifyCreds
-	sshers 		[]*pb.SSHKeyWrapper
-	repos 		[]*pb.RepoCreds
-	k8s 		[]*pb.K8SCreds
+	failConn  bool
+	fail      bool
+	fail404   bool
+	generics  []*pb.GenericCreds
+	notifiers []*pb.NotifyCreds
+	sshers    []*pb.SSHKeyWrapper
+	repos     []*pb.RepoCreds
+	k8s       []*pb.K8SCreds
 }
 
 func (f *fakeCli) CheckConn(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*empty.Empty, error) {
@@ -200,7 +200,3 @@ func (f *fakeCli) DeleteRepoCreds(ctx context.Context, in *pb.RepoCreds, opts ..
 	f.repos = append(f.repos, in)
 	return nil, nil
 }
-
-
-
-

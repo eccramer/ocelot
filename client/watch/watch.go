@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"strings"
 
 	"github.com/mitchellh/cli"
 	"github.com/shankj3/ocelot/client/commandhelper"
@@ -53,14 +54,20 @@ func (c *cmd) Help() string {
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
-	c.flags.StringVar(&c.OcyHelper.AcctRepo, "acct-repo", "ERROR", "<account>/<repo> to watch")
+	c.flags.StringVar(&c.AcctRepo, "acct-repo", "ERROR", "<account>/<repo> to watch")
+	c.flags.StringVar(&c.VcsTypeStr, "vcs-type", "ERROR", fmt.Sprintf("%s", strings.Join(models.CredType_VCS.SubtypesString(), "|")))
 }
 
 func (c *cmd) Run(args []string) int {
 	if err := c.flags.Parse(args); err != nil {
 		return 1
 	}
-	if err := c.OcyHelper.DetectAcctRepo(c.UI); err != nil {
+	if err := c.DetectAcctRepo(c.UI); err != nil {
+		commandhelper.Debuggit(c.UI, err.Error())
+		return 1
+	}
+	if err := c.DetectOrConvertVcsType(c.UI); err != nil {
+		commandhelper.Debuggit(c.UI, err.Error())
 		return 1
 	}
 	if err := c.OcyHelper.SplitAndSetAcctRepo(c.UI); err != nil {
@@ -75,6 +82,7 @@ func (c *cmd) Run(args []string) int {
 	_, err := c.config.Client.WatchRepo(ctx, &models.RepoAccount{
 		Repo:    c.OcyHelper.Repo,
 		Account: c.OcyHelper.Account,
+		Type:    c.OcyHelper.VcsType,
 	})
 
 	if err != nil {

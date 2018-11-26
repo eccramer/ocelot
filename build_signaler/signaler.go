@@ -15,11 +15,11 @@ import (
 
 func NewSignaler(RC credentials.CVRemoteConfig, dese *deserialize.Deserializer, producer nsqpb.Producer, ocyValidator *build.OcelotValidator, store storage.OcelotStorage) *Signaler {
 	return &Signaler{
-		RC: RC,
+		RC:           RC,
 		Deserializer: dese,
-		Producer: producer,
+		Producer:     producer,
 		OcyValidator: ocyValidator,
-		Store: store,
+		Store:        store,
 	}
 }
 
@@ -113,16 +113,17 @@ func BuildInitialWerkerTask(buildConf *pb.BuildConfig,
 	branch string,
 	acctRepo string,
 	sigType pb.SignaledBy,
-	prData *pb.PrWerkerData) *pb.WerkerTask {
+	prData *pb.PrWerkerData,
+	vcsType pb.SubCredType) *pb.WerkerTask {
 	return &pb.WerkerTask{
-		CheckoutHash:  hash,
-		Branch:        branch,
-		BuildConf:     buildConf,
-		VcsToken:      authToken,
-		VcsType:       pb.SubCredType_BITBUCKET,
-		FullName:      acctRepo,
-		SignaledBy:    sigType,
-		PrData:        prData,
+		CheckoutHash: hash,
+		Branch:       branch,
+		BuildConf:    buildConf,
+		VcsToken:     authToken,
+		VcsType:      vcsType,
+		FullName:     acctRepo,
+		SignaledBy:   sigType,
+		PrData:       prData,
 	}
 }
 

@@ -3,7 +3,6 @@ package launcher
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	ocelog "github.com/shankj3/go-til/log"
@@ -23,8 +22,16 @@ func (w *launcher) preFlight(ctx context.Context, werk *pb.WerkerTask, builder b
 	start := time.Now()
 	prefly := build.InitStageUtil("PREFLIGHT")
 	preflightResult := &pb.Result{Stage: prefly.GetStage(), Status: pb.StageResultVal_PASS}
+	acct, _, err := common.GetAcctRepo(werk.FullName)
+	if err != nil {
+		return bailOut, err
+	}
 	var result *pb.Result
-	result = w.handleEnvSecrets(ctx, builder, strings.Split(werk.FullName, "/")[0], prefly)
+	result = w.handleEnvSecrets(ctx, builder, acct, prefly)
+	if bailOut, err = w.mapOrStoreStageResults(result, preflightResult, werk.Id, start); err != nil || bailOut {
+		return
+	}
+	result = w.downloadBinaries(ctx, prefly, builder, werk.BuildConf)
 	if bailOut, err = w.mapOrStoreStageResults(result, preflightResult, werk.Id, start); err != nil || bailOut {
 		return
 	}
@@ -33,10 +40,6 @@ func (w *launcher) preFlight(ctx context.Context, werk *pb.WerkerTask, builder b
 		return
 	}
 
-	result = w.downloadBinaries(ctx, prefly, builder, werk.BuildConf)
-	if bailOut, err = w.mapOrStoreStageResults(result, preflightResult, werk.Id, start); err != nil || bailOut {
-		return
-	}
 	// download codebase to werker node
 	result = downloadCodebase(ctx, werk, builder, prefly, w.infochan)
 	if bailOut, err = w.mapOrStoreStageResults(result, preflightResult, werk.Id, start); err != nil || bailOut {
@@ -49,7 +52,6 @@ func (w *launcher) preFlight(ctx context.Context, werk *pb.WerkerTask, builder b
 	return
 }
 
-
 // mapOrStoreStageResults will map the subStageResult's messages to the parentResult. if the substageresult fails,
 //   the newly mapped parentResult will be stored in OcelotStorage and bailOut will be returned as true.
 //   if the storage fails, an error will be returned
@@ -57,7 +59,7 @@ func (w *launcher) mapOrStoreStageResults(subStageResult *pb.Result, parentResul
 	bailOut = subStageResult.Status == pb.StageResultVal_FAIL
 	var preppedmessages []string
 	for _, msg := range subStageResult.Messages {
-		preppedmessages = append(preppedmessages, build.InitStageUtil(subStageResult.Stage).GetStageLabel() + msg)
+		preppedmessages = append(preppedmessages, build.InitStageUtil(subStageResult.Stage).GetStageLabel()+msg)
 	}
 	parentResult.Messages = append(parentResult.Messages, subStageResult.Messages...)
 	if bailOut {
@@ -71,7 +73,9 @@ func (w *launcher) mapOrStoreStageResults(subStageResult *pb.Result, parentResul
 	return
 }
 
-func (w *launcher) handleEnvSecrets(ctx context.Context, builder build.Builder, accountName string, stage *build.StageUtil) (*pb.Result) {
+// handleEnvSecrets will grab all environment type credentials from storage / secret store and add them as global environment variables for
+// 	the entire build.
+func (w *launcher) handleEnvSecrets(ctx context.Context, builder build.Builder, accountName string, stage *build.StageUtil) *pb.Result {
 	creds, err := w.RemoteConf.GetCredsBySubTypeAndAcct(w.Store, pb.SubCredType_ENV, accountName, false)
 	if err != nil {
 		if _, ok := err.(*common.NoCreds); ok {
@@ -84,17 +88,17 @@ func (w *launcher) handleEnvSecrets(ctx context.Context, builder build.Builder, 
 		allenvs = append(allenvs, fmt.Sprintf("%s=%s", envVar.GetIdentifier(), envVar.GetClientSecret()))
 	}
 	builder.AddGlobalEnvs(allenvs)
-	return &pb.Result{Status:pb.StageResultVal_PASS, Messages:[]string{"successfully set env secrets " + models.CHECKMARK}, Stage: stage.GetStage()}
+	return &pb.Result{Status: pb.StageResultVal_PASS, Messages: []string{"successfully set env secrets " + models.CHECKMARK}, Stage: stage.GetStage()}
 }
 
 //downloadCodebase will download the code that will be built
-func downloadCodebase(ctx context.Context, task *pb.WerkerTask, builder build.Builder, su *build.StageUtil, logChan chan []byte) (*pb.Result) {
+func downloadCodebase(ctx context.Context, task *pb.WerkerTask, builder build.Builder, su *build.StageUtil, logChan chan []byte) *pb.Result {
 	var setupMessages []string
 	setupMessages = append(setupMessages, "attempting to download codebase...")
 	stage := &pb.Stage{
-		Env: []string{},
+		Env:    []string{},
 		Script: builder.DownloadCodebase(task),
-		Name: su.GetStage(),
+		Name:   su.GetStage(),
 	}
 	codebaseDownload := builder.ExecuteIntegration(ctx, stage, su, logChan)
 	codebaseDownload.Messages = append(setupMessages, codebaseDownload.Messages...)
